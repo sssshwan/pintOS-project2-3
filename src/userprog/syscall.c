@@ -46,12 +46,14 @@ syscall_handler (struct intr_frame *f)
 	  
 	switch (*ptr)
 	{
+		/* case halt */
 		case SYS_HALT:
 		{ 
 			halt();
 			break;
 		}
 
+		/* case exit */
 		case SYS_EXIT: 
 		{
 			if (!is_user_vaddr (ptr + 1))
@@ -61,7 +63,7 @@ syscall_handler (struct intr_frame *f)
 			break;
 		}
 			
-
+		/* case exec */
 		case SYS_EXEC:
 		{
 			if (!is_user_vaddr (ptr + 1))
@@ -72,6 +74,7 @@ syscall_handler (struct intr_frame *f)
 			break;
 		}
 
+		/* case wait */
 		case SYS_WAIT:
 		{
 			if (!is_user_vaddr (ptr + 1))
@@ -82,6 +85,7 @@ syscall_handler (struct intr_frame *f)
 			break;
 		}
 
+		/* case create */
 		case SYS_CREATE: 
 		{
 			if (!is_user_vaddr (ptr + 1))
@@ -94,6 +98,7 @@ syscall_handler (struct intr_frame *f)
 			break;
 		}
 
+		/* case remove */
 		case SYS_REMOVE: 
 		{
 			if (!is_user_vaddr (ptr + 1))
@@ -104,6 +109,7 @@ syscall_handler (struct intr_frame *f)
 			break;
 		}
 
+		/* case open */
 		case SYS_OPEN: 
 		{
 			if (!is_user_vaddr (ptr + 1))
@@ -114,6 +120,7 @@ syscall_handler (struct intr_frame *f)
 			break;
 		}
 
+		/* case fileszie */
 		case SYS_FILESIZE: 
 		{
 			if (!is_user_vaddr (ptr + 1))
@@ -124,6 +131,7 @@ syscall_handler (struct intr_frame *f)
 			break;
 		}
 
+		/* case read */
 		case SYS_READ: 
 		{
 			if (!is_user_vaddr (ptr + 1))
@@ -141,6 +149,7 @@ syscall_handler (struct intr_frame *f)
 			break;
 		}
 
+		/* case write */
 		case SYS_WRITE: 
 		{
 			if (!is_user_vaddr (ptr + 1))
@@ -156,7 +165,8 @@ syscall_handler (struct intr_frame *f)
 			f->eax = result;
 			break;
 		}
-
+		
+		/* case seek */
 		case SYS_SEEK: 
 		{
 			if (!is_user_vaddr (ptr + 1))
@@ -168,6 +178,7 @@ syscall_handler (struct intr_frame *f)
 			break;
 		}
 
+		/* case tell */
 		case SYS_TELL: 
 		{
 			if(!is_user_vaddr (ptr + 1))
@@ -178,6 +189,7 @@ syscall_handler (struct intr_frame *f)
 			break;
 		}
 
+		/* case close */
 		case SYS_CLOSE:
 		{
 			if(!is_user_vaddr (ptr + 1))
@@ -193,12 +205,14 @@ invalid:
   return; 
 }
 
+/* pj2: halt system call */
 void
 halt (void) 
 {
 	shutdown_power_off();
 }
 
+/* pj2: exit system call */
 void
 exit (int status)
 {	
@@ -209,6 +223,7 @@ exit (int status)
 
 }
 
+/* pj2: exec system call */
 pid_t
 exec (const char *cmd_line)
 {
@@ -216,42 +231,49 @@ exec (const char *cmd_line)
 
 }
 
+/* pj2: wait system call */
 int
 wait (pid_t pid)
 {
   return process_wait(pid);
 }
 
+/* pj2: create system call */
 bool
 create (const char *file, unsigned initial_size)
 {
   return 0;
 }
 
+/* pj2: remove system call */
 bool
 remove (const char *file)
 {
   return 0;
 }
 
+/* pj2: open system call */
 int
 open (const char *file)
 {
   return 0;
 }
 
+/* pj2: filesize system call */
 int
 filesize (int fd) 
 {
   return 0;
 }
 
+/* pj2: read system call */
 int
 read (int fd, void *buffer, unsigned size)
 {
   return 0;
 }
 
+/* pj2: write system call */
 int
 write (int fd, const void *buffer, unsigned size)
 {
@@ -262,18 +284,21 @@ write (int fd, const void *buffer, unsigned size)
   	return -1;
 }
 
+/* pj2: seek system call */
 void
 seek (int fd, unsigned position) 
 {
   return 0;
 }
 
+/* pj2: tell system call */
 unsigned
 tell (int fd) 
 {
   return 0; 
 }
 
+/* pj2: close system call */
 void
 close (int fd)
 {
