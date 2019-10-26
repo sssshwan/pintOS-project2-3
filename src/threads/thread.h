@@ -96,6 +96,9 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+    /* pj2 */
+    struct file* file_fdt[64];
+    int next_fd;
 #endif
 
     /* Owned by thread.c. */

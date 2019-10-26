@@ -4,6 +4,8 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "filesys/file.h"
+#include "filesys/filesys.h"
 
 typedef int pid_t;
 
@@ -240,28 +242,38 @@ wait (pid_t pid)
 bool
 create (const char *file, unsigned initial_size)
 {
-  return 0;
+  /* check validty of file pointer */
+  is_valid_file(file);
+
+  return filesys_create(file, initial_size);
 }
 
 /* pj2: remove system call */
 bool
 remove (const char *file)
 {
-  return 0;
+  /* check validty of file pointer */
+  is_valid_file(file);
+
+  return filesys_remove(file);
 }
 
 /* pj2: open system call */
 int
 open (const char *file)
 {
+  /* check validty of file pointer */
+  is_valid_file(file);
+
   return 0;
 }
 
 /* pj2: filesize system call */
 int
 filesize (int fd) 
-{
-  return 0;
+{ 
+  struct thread *cur = thread_current();
+  return file_length(cur->file_fdt[fd]);
 }
 
 /* pj2: read system call */
@@ -293,6 +305,7 @@ seek (int fd, unsigned position)
 unsigned
 tell (int fd) 
 {
+  printf("tell\n");
   return 0; 
 }
 
@@ -301,5 +314,14 @@ void
 close (int fd)
 {
   return;
+}
+
+void
+is_valid_file (const char *file){
+  struct thread *cur = thread_current();
+
+  if(!is_user_vaddr(file)) exit(-1);
+  //if(pagedir_get_page(cur->pagedir, file)) exit(-1);
+  if(!file) exit(-1);
 }
 
