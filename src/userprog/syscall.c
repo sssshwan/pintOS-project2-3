@@ -219,14 +219,15 @@ exit (int status)
 	struct thread *cur = thread_current ();
   /* Save exit status at process descriptor */
   printf("%s: exit(%d)\n" , cur -> name , status);
+
+  /* close all files in file descriptor table */
   int fd;
-  for(fd=3; fd<128; fd++){
+  for(fd=3; fd<64; fd++){
     if (cur->file_fdt[fd] != NULL){
       close(fd);
     }
   }
   thread_exit();
-
 }
 
 /* pj2: exec system call */
@@ -274,17 +275,17 @@ open (const char *file)
   struct file *fp = filesys_open(file);
   if(!fp) return -1;
 
-  int fd;
   struct thread *cur = thread_current();
 
-  for(fd=3; fd<64; fd++){
-    if(!cur->file_fdt[fd]){
-      cur->file_fdt[fd] = fp;
+  int i;
+  for(i=3; i<64; i++){
+    if(!cur->file_fdt[i]){
+      cur->file_fdt[i] = fp;
       break;
     }
   }
 
-  return fd;
+  return i;
 }
 
 /* pj2: filesize system call */
@@ -298,21 +299,42 @@ filesize (int fd)
 /* pj2: read system call */
 int
 read (int fd, void *buffer, unsigned size)
-{
-  is_user_vaddr(buffer);
+{ 
+  struct thread *cur = thread_current();
+  //is_user_vaddr(buffer);
 
-  return size;
+  if (fd == 0){
+    int i;
+    for (i = 0; i < size; i ++) {
+      if (((char *)buffer)[i] == '\0') 
+        return i;
+    }   
+  }
+  else if(fd == 1)
+    return -1;
+  else if (fd > 2){
+    if (cur->file_fdt[fd] == NULL) 
+      exit(-1);
+    return file_read(cur->file_fdt[fd], buffer, size);
+  }
 }
 
 /* pj2: write system call */
 int
 write (int fd, const void *buffer, unsigned size)
 {
-  if (fd == 1) {
+  if (fd == 0) 
+    return -1;
+  else if (fd == 1) {
     putbuf(buffer, size);
     return size;
+  } 
+  else if (fd > 2){
+    if (thread_current()->file_fdt[fd] == NULL) 
+      exit(-1);
+    file_write(thread_current()->file_fdt[fd], buffer, size);
   }
-    return -1;
+  return -1;
 }
 
 /* pj2: seek system call */
