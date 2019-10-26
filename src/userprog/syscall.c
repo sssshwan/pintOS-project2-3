@@ -219,6 +219,12 @@ exit (int status)
 	struct thread *cur = thread_current ();
   /* Save exit status at process descriptor */
   printf("%s: exit(%d)\n" , cur -> name , status);
+  int fd;
+  for(fd=3; fd<128; fd++){
+    if (cur->file_fdt[fd] != NULL){
+      close(fd);
+    }
+  }
   thread_exit();
 
 }
@@ -265,7 +271,20 @@ open (const char *file)
   /* check validty of file pointer */
   is_valid_file(file);
 
-  return 0;
+  struct file *fp = filesys_open(file);
+  if(!fp) return -1;
+
+  int fd;
+  struct thread *cur = thread_current();
+
+  for(fd=3; fd<64; fd++){
+    if(!cur->file_fdt[fd]){
+      cur->file_fdt[fd] = fp;
+      break;
+    }
+  }
+
+  return fd;
 }
 
 /* pj2: filesize system call */
@@ -280,7 +299,9 @@ filesize (int fd)
 int
 read (int fd, void *buffer, unsigned size)
 {
-  return 0;
+  is_user_vaddr(buffer);
+
+  return size;
 }
 
 /* pj2: write system call */
@@ -298,15 +319,16 @@ write (int fd, const void *buffer, unsigned size)
 void
 seek (int fd, unsigned position) 
 {
-  return 0;
+  struct thread *cur = thread_current();
+  return file_seek(cur->file_fdt[fd], position); 
 }
 
 /* pj2: tell system call */
 unsigned
 tell (int fd) 
 {
-  printf("tell\n");
-  return 0; 
+  struct thread *cur = thread_current();
+  return file_tell(cur->file_fdt[fd]); 
 }
 
 /* pj2: close system call */
