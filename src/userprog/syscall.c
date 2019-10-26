@@ -33,171 +33,169 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-	int *ptr = f->esp; 
+  int *ptr = f->esp; 
 
-	if (!is_user_vaddr (ptr))  
-		goto invalid;
+  if (!is_user_vaddr (ptr))  
+    goto invalid;
 
-	if (*ptr < SYS_HALT || *ptr > SYS_INUMBER)
-		goto invalid;
+  if (*ptr < SYS_HALT || *ptr > SYS_INUMBER)
+    goto invalid;
 
   //printf("syscall num : %d\n", *(uint32_t *)(f->esp));
   //hex_dump(f->esp, f->esp, 100, 1); 
 	  
-	switch (*ptr)
-	{
-		/* case halt */
-		case SYS_HALT:
-		{ 
-			halt();
-			break;
-		}
+  switch (*ptr)
+  {
+    /* case halt */
+    case SYS_HALT:
+    { 
+      halt();
+      break;
+    }
 
-		/* case exit */
-		case SYS_EXIT: 
-		{
-			if (!is_user_vaddr (ptr + 1))
-				goto invalid;
+    /* case exit */
+    case SYS_EXIT: 
+    {
+      if (!is_user_vaddr (ptr + 1))
+      goto invalid;
 
-			exit (*(ptr + 1));
-			break;
-		}
+      exit (*(ptr + 1));
+      break;
+    }
 			
-		/* case exec */
-		case SYS_EXEC:
-		{
-			if (!is_user_vaddr (ptr + 1))
-				goto invalid;
+    /* case exec */
+    case SYS_EXEC:
+    {
+      if (!is_user_vaddr (ptr + 1))
+	      goto invalid;
 			
-			pid_t result = exec (*(ptr + 1));
-			f->eax = result;
-			break;
-		}
+      pid_t result = exec (*(ptr + 1));
+      f->eax = result;
+      break;
+    }
 
-		/* case wait */
-		case SYS_WAIT:
-		{
-			if (!is_user_vaddr (ptr + 1))
-				goto invalid;
+    /* case wait */
+    case SYS_WAIT:
+    {
+      if (!is_user_vaddr (ptr + 1))
+        goto invalid;
 				
-			int result = wait (*(ptr + 1));
-			f->eax = result;
-			break;
-		}
+      int result = wait (*(ptr + 1));
+      f->eax = result;
+      break;
+    }
 
-		/* case create */
-		case SYS_CREATE: 
-		{
-			if (!is_user_vaddr (ptr + 1))
-				goto invalid;
-			if (!is_user_vaddr (ptr + 2))
-				goto invalid;
-			
-			bool result = create (*(ptr + 1), *(ptr + 2));
-			f->eax = result;
-			break;
-		}
+    /* case create */
+    case SYS_CREATE: 
+    {
+      if (!is_user_vaddr (ptr + 1))
+        goto invalid;
+      if (!is_user_vaddr (ptr + 2))
+        goto invalid;
 
-		/* case remove */
-		case SYS_REMOVE: 
-		{
-			if (!is_user_vaddr (ptr + 1))
-				goto invalid;
+      bool result = create (*(ptr + 1), *(ptr + 2));f->eax = result;
+      break;
+    }
 
-			bool result = remove (*(ptr + 1));
-			f->eax = result;
-			break;
-		}
+    /* case remove */
+    case SYS_REMOVE: 
+    {
+      if (!is_user_vaddr (ptr + 1))
+        goto invalid;
 
-		/* case open */
-		case SYS_OPEN: 
-		{
-			if (!is_user_vaddr (ptr + 1))
-				goto invalid;
+      bool result = remove (*(ptr + 1));
+      f->eax = result;
+      break;
+    }
 
-			int result = open (*(ptr + 1));
-			f->eax = result;
-			break;
-		}
+    /* case open */
+    case SYS_OPEN: 
+    {
+      if (!is_user_vaddr (ptr + 1))
+        goto invalid;
 
-		/* case fileszie */
-		case SYS_FILESIZE: 
-		{
-			if (!is_user_vaddr (ptr + 1))
-				goto invalid;
+      int result = open (*(ptr + 1));
+      f->eax = result;
+      break;
+    }
 
-			int result = filesize (*(ptr + 1));
-			f->eax = result;
-			break;
-		}
+    /* case fileszie */
+    case SYS_FILESIZE: 
+    {
+      if (!is_user_vaddr (ptr + 1))
+        goto invalid;
 
-		/* case read */
-		case SYS_READ: 
-		{
-			if (!is_user_vaddr (ptr + 1))
-				goto invalid;
-			
-			if (!is_user_vaddr (ptr + 2))
-				goto invalid;
-			
-			if (!is_user_vaddr (ptr + 3))
-				goto invalid;
+      int result = filesize (*(ptr + 1));
+      f->eax = result;
+      break;
+    }
+
+    /* case read */
+    case SYS_READ: 
+    {
+      if (!is_user_vaddr (ptr + 1))
+        goto invalid;
+      
+      if (!is_user_vaddr (ptr + 2))
+        goto invalid;
+
+      if (!is_user_vaddr (ptr + 3))
+        goto invalid;
 		
+      int result = read (*(ptr + 1), ptr + 2, *(ptr + 3));
+      f->eax = result;
+      break; 
+    }
 
-			int result = read (*(ptr + 1), ptr + 2, *(ptr + 3));
-			f->eax = result;
-			break;
-		}
-
-		/* case write */
-		case SYS_WRITE: 
-		{
-			if (!is_user_vaddr (ptr + 1))
-				goto invalid;
+    /* case write */
+    case SYS_WRITE: 
+    {
+      if (!is_user_vaddr (ptr + 1))
+        goto invalid;
 			
-			if (!is_user_vaddr (ptr + 2))
-				goto invalid;
+      if (!is_user_vaddr (ptr + 2))
+        goto invalid;
 			
-			if (!is_user_vaddr (ptr + 3))
-				goto invalid;
-
-			int result = write (*(ptr + 1), *(ptr + 2), *(ptr + 3));
-			f->eax = result;
-			break;
-		}
+      if (!is_user_vaddr (ptr + 3))
+        goto invalid;
+      
+      int result = write (*(ptr + 1), *(ptr + 2), *(ptr + 3));
+      f->eax = result;
+      break;
+    }
 		
-		/* case seek */
-		case SYS_SEEK: 
-		{
-			if (!is_user_vaddr (ptr + 1))
-				goto invalid;
-			if (!is_user_vaddr (ptr + 2))
-				goto invalid;
-			
-			seek (*(ptr + 1), *(ptr + 2));
-			break;
-		}
+    /* case seek */
+    case SYS_SEEK: 
+    {
+      if (!is_user_vaddr (ptr + 1))
+        goto invalid;
+      if (!is_user_vaddr (ptr + 2))
+        goto invalid;
+			  
+      seek (*(ptr + 1), *(ptr + 2)); 
+      break;
+    }
 
-		/* case tell */
-		case SYS_TELL: 
-		{
-			if(!is_user_vaddr (ptr + 1))
-				goto invalid;
-			
-			unsigned result = tell (*(ptr + 1));
-			f->eax = result;
-			break;
-		}
+    /* case tell */
+    case SYS_TELL: 
+    {
+      if(!is_user_vaddr (ptr + 1))
+        goto invalid;
+  
+      unsigned result = tell (*(ptr + 1));
+      f->eax = result;
+      break;
+    }
 
-		/* case close */
-		case SYS_CLOSE:
-		{
-			if(!is_user_vaddr (ptr + 1))
-				goto invalid;
-		
-			close (*(ptr + 1));
-			break;
-		}
+    /* case close */
+    case SYS_CLOSE:
+    {
+      if(!is_user_vaddr (ptr + 1))
+        goto invalid;
+
+      close (*(ptr + 1));
+      break;
+    }
   }
   return;
 
@@ -209,7 +207,7 @@ invalid:
 void
 halt (void) 
 {
-	shutdown_power_off();
+  shutdown_power_off();
 }
 
 /* pj2: exit system call */
@@ -277,11 +275,11 @@ read (int fd, void *buffer, unsigned size)
 int
 write (int fd, const void *buffer, unsigned size)
 {
-	if (fd == 1) {
-		putbuf(buffer, size);
-		return size;
-	}
-  	return -1;
+  if (fd == 1) {
+    putbuf(buffer, size);
+    return size;
+  }
+    return -1;
 }
 
 /* pj2: seek system call */
