@@ -472,12 +472,18 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 
+   /* pj2 initalize what we defined */
   #ifdef USERPROG
+    sema_init(&(t->sema_child), 0);        
+    sema_init(&(t->sema_mem), 0);        
+    list_init(&(t->child));
+    list_push_back(&(running_thread()->child), &(t->childelem));
     int i;                                                                       
     for (i = 0; i < 64; i++) {                                                         
         t->file_fdt[i] = NULL;                                                                
     }
   #endif       
+                             
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

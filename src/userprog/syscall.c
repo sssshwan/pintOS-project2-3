@@ -220,6 +220,7 @@ exit (int status)
 	struct thread *cur = thread_current ();
   /* Save exit status at process descriptor */
   printf("%s: exit(%d)\n" , cur -> name , status);
+  cur->exit_status = status;
 
   /* close all files in file descriptor table */
   int fd;
