@@ -5,6 +5,8 @@
 #include <list.h>
 #include <stdint.h>
 
+#include "threads/synch.h"
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -93,13 +95,18 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-#ifdef USERPROG
+  #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     /* pj2 */
+    struct semaphore sema_child;        /* semaphore to synchronize with child */
+    struct semaphore sema_mem;          /* semaphore to keep remain memory of child */
+    struct list child;                  /* list of child of this process */
+    struct list_elem childelem;         /* list element for child */
     struct file* file_fdt[64];
     int next_fd;
-#endif
+    int exit_status;                    /* we should store exit status for child process */
+  #endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
