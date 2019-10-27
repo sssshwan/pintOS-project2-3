@@ -4,6 +4,7 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/synch.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 
@@ -25,11 +26,13 @@ void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
 
+struct lock file_lock;
 
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(&file_lock);
 }
 
 static void
@@ -323,17 +326,25 @@ read (int fd, void *buffer, unsigned size)
 int
 write (int fd, const void *buffer, unsigned size)
 {
-  if (fd == 0) 
-    return -1;
+  struct thread *cur = thread_current();
+  int ret;
+
+  //lock_acquire(&file_lock);
+  if (fd == 0)
+    ret = -1;
   else if (fd == 1) {
     putbuf(buffer, size);
-    return size;
+    ret = size;
   } 
   else if (fd > 2){
-    if (! thread_current()->file_fdt[fd]) 
+    if (! cur->file_fdt[fd])
+      //lock_release(&file_lock); 
       exit(-1);
+    ret = file_write(cur->file_fdt[fd], buffer, size);
   }
-  return file_write(thread_current()->file_fdt[fd], buffer, size);
+  //lock_release(&file_lock); 
+  
+  return ret;
 }
 
 /* pj2: seek system call */
@@ -360,13 +371,19 @@ tell (int fd)
 void
 close (int fd)
 {
-  return;
+  struct thread *cur = thread_current();
+  if (! cur->file_fdt[fd]) 
+    exit(-1);
+  
+  file_close(cur->file_fdt[fd]);
+  cur->file_fdt[fd] = NULL;
+
+  return ;
 }
 
 void
-is_valid_file (const char *file){
-  struct thread *cur = thread_current();
-
+is_valid_file (const char *file)
+{
   if(!is_user_vaddr(file)) exit(-1);
   //if(pagedir_get_page(cur->pagedir, file)) exit(-1);
   if(!file) exit(-1);
