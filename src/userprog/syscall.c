@@ -38,10 +38,10 @@ syscall_handler (struct intr_frame *f)
   int *ptr = f->esp; 
 
   if (!is_user_vaddr (ptr))  
-    goto invalid;
+    return;
 
   if (*ptr < SYS_HALT || *ptr > SYS_INUMBER)
-    goto invalid;
+    return;
 
   //printf("syscall num : %d\n", *(uint32_t *)(f->esp));
   //hex_dump(f->esp, f->esp, 100, 1); 
@@ -59,7 +59,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_EXIT: 
     {
       if (!is_user_vaddr (ptr + 1))
-      goto invalid;
+      return;
 
       exit (*(ptr + 1));
       break;
@@ -69,7 +69,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_EXEC:
     {
       if (!is_user_vaddr (ptr + 1))
-	      goto invalid;
+	      return;
 			
       pid_t result = exec (*(ptr + 1));
       f->eax = result;
@@ -80,7 +80,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_WAIT:
     {
       if (!is_user_vaddr (ptr + 1))
-        goto invalid;
+        return;
 				
       int result = wait (*(ptr + 1));
       f->eax = result;
@@ -91,9 +91,9 @@ syscall_handler (struct intr_frame *f)
     case SYS_CREATE: 
     {
       if (!is_user_vaddr (ptr + 1))
-        goto invalid;
+        return;
       if (!is_user_vaddr (ptr + 2))
-        goto invalid;
+        return;
 
       bool result = create (*(ptr + 1), *(ptr + 2));f->eax = result;
       break;
@@ -103,7 +103,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_REMOVE: 
     {
       if (!is_user_vaddr (ptr + 1))
-        goto invalid;
+        return;
 
       bool result = remove (*(ptr + 1));
       f->eax = result;
@@ -114,7 +114,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_OPEN: 
     {
       if (!is_user_vaddr (ptr + 1))
-        goto invalid;
+        return;
 
       int result = open (*(ptr + 1));
       f->eax = result;
@@ -125,7 +125,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_FILESIZE: 
     {
       if (!is_user_vaddr (ptr + 1))
-        goto invalid;
+        return;
 
       int result = filesize (*(ptr + 1));
       f->eax = result;
@@ -136,13 +136,13 @@ syscall_handler (struct intr_frame *f)
     case SYS_READ: 
     {
       if (!is_user_vaddr (ptr + 1))
-        goto invalid;
+        return;
       
       if (!is_user_vaddr (ptr + 2))
-        goto invalid;
+        return;
 
       if (!is_user_vaddr (ptr + 3))
-        goto invalid;
+        return;
 		
       int result = read (*(ptr + 1), ptr + 2, *(ptr + 3));
       f->eax = result;
@@ -153,13 +153,13 @@ syscall_handler (struct intr_frame *f)
     case SYS_WRITE: 
     {
       if (!is_user_vaddr (ptr + 1))
-        goto invalid;
+        return;
 			
       if (!is_user_vaddr (ptr + 2))
-        goto invalid;
+        return;
 			
       if (!is_user_vaddr (ptr + 3))
-        goto invalid;
+        return;
       
       int result = write (*(ptr + 1), *(ptr + 2), *(ptr + 3));
       f->eax = result;
@@ -170,9 +170,9 @@ syscall_handler (struct intr_frame *f)
     case SYS_SEEK: 
     {
       if (!is_user_vaddr (ptr + 1))
-        goto invalid;
+        return;
       if (!is_user_vaddr (ptr + 2))
-        goto invalid;
+        return;
 			  
       seek (*(ptr + 1), *(ptr + 2)); 
       break;
@@ -182,7 +182,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_TELL: 
     {
       if(!is_user_vaddr (ptr + 1))
-        goto invalid;
+        return;
   
       unsigned result = tell (*(ptr + 1));
       f->eax = result;
@@ -193,16 +193,14 @@ syscall_handler (struct intr_frame *f)
     case SYS_CLOSE:
     {
       if(!is_user_vaddr (ptr + 1))
-        goto invalid;
+        return;
 
       close (*(ptr + 1));
       break;
     }
   }
   return;
-
-invalid:
-  return; 
+ 
 }
 
 /* pj2: halt system call */
@@ -293,6 +291,8 @@ int
 filesize (int fd) 
 { 
   struct thread *cur = thread_current();
+  if(!cur->file_fdt[fd])
+    exit(-1);
   return file_length(cur->file_fdt[fd]);
 }
 
@@ -330,11 +330,10 @@ write (int fd, const void *buffer, unsigned size)
     return size;
   } 
   else if (fd > 2){
-    if (thread_current()->file_fdt[fd] == NULL) 
+    if (! thread_current()->file_fdt[fd]) 
       exit(-1);
-    file_write(thread_current()->file_fdt[fd], buffer, size);
   }
-  return -1;
+  return file_write(thread_current()->file_fdt[fd], buffer, size);
 }
 
 /* pj2: seek system call */
@@ -342,6 +341,8 @@ void
 seek (int fd, unsigned position) 
 {
   struct thread *cur = thread_current();
+  if(!cur->file_fdt[fd])
+    exit(-1);
   return file_seek(cur->file_fdt[fd], position); 
 }
 
@@ -350,6 +351,8 @@ unsigned
 tell (int fd) 
 {
   struct thread *cur = thread_current();
+  if(!cur->file_fdt[fd])
+    exit(-1);
   return file_tell(cur->file_fdt[fd]); 
 }
 
@@ -368,4 +371,3 @@ is_valid_file (const char *file){
   //if(pagedir_get_page(cur->pagedir, file)) exit(-1);
   if(!file) exit(-1);
 }
-
