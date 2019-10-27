@@ -147,7 +147,7 @@ syscall_handler (struct intr_frame *f)
       if (!is_user_vaddr (ptr + 3))
         return;
 		
-      int result = read (*(ptr + 1), ptr + 2, *(ptr + 3));
+      int result = read (*(ptr + 1), *(ptr + 2), *(ptr + 3));
       f->eax = result;
       break; 
     }
@@ -219,7 +219,7 @@ exit (int status)
 {	
 	struct thread *cur = thread_current ();
   /* Save exit status at process descriptor */
-  printf("%s: exit(%d)\n" , cur -> name , status);
+  printf("%s: exit(%d)\n" , thread_name () , status);
   cur->exit_status = status;
 
   /* close all files in file descriptor table */
@@ -295,7 +295,7 @@ int
 filesize (int fd) 
 { 
   struct thread *cur = thread_current();
-  if(!cur->file_fdt[fd])
+  if(! cur->file_fdt[fd])
     exit(-1);
   return file_length(cur->file_fdt[fd]);
 }
@@ -317,7 +317,7 @@ read (int fd, void *buffer, unsigned size)
   else if(fd == 1)
     return -1;
   else if (fd > 2){
-    if (cur->file_fdt[fd] == NULL) 
+    if (!cur->file_fdt[fd]) 
       exit(-1);
     return file_read(cur->file_fdt[fd], buffer, size);
   }
@@ -385,7 +385,7 @@ close (int fd)
 void
 is_valid_file (const char *file)
 {
+  if(!file) exit(-1);
   if(!is_user_vaddr(file)) exit(-1);
   //if(pagedir_get_page(cur->pagedir, file)) exit(-1);
-  if(!file) exit(-1);
 }
