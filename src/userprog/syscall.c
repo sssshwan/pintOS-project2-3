@@ -222,13 +222,6 @@ exit (int status)
   printf("%s: exit(%d)\n" , thread_name () , status);
   cur->exit_status = status;
 
-  /* close all files in file descriptor table */
-  int fd;
-  for(fd=3; fd<64; fd++){
-    if (cur->file_fdt[fd] != NULL){
-      close(fd);
-    }
-  }
   thread_exit();
 }
 
@@ -237,7 +230,6 @@ pid_t
 exec (const char *cmd_line)
 {
   return process_execute(cmd_line);
-
 }
 
 /* pj2: wait system call */
@@ -252,7 +244,8 @@ bool
 create (const char *file, unsigned initial_size)
 {
   /* check validty of file pointer */
-  is_valid_file(file);
+  if(!file) exit(-1);
+  if(!is_user_vaddr(file)) exit(-1);
 
   return filesys_create(file, initial_size);
 }
@@ -262,7 +255,8 @@ bool
 remove (const char *file)
 {
   /* check validty of file pointer */
-  is_valid_file(file);
+  if(!file) exit(-1);
+  if(!is_user_vaddr(file)) exit(-1);
 
   return filesys_remove(file);
 }
@@ -272,7 +266,8 @@ int
 open (const char *file)
 {
   /* check validty of file pointer */
-  is_valid_file(file);
+  if(!file) exit(-1);
+  if(!is_user_vaddr(file)) exit(-1);
 
   struct file *fp = filesys_open(file);
   if(!fp) return -1;
@@ -295,8 +290,8 @@ int
 filesize (int fd) 
 { 
   struct thread *cur = thread_current();
-  if(! cur->file_fdt[fd])
-    exit(-1);
+  if(! cur->file_fdt[fd]) exit(-1);
+
   return file_length(cur->file_fdt[fd]);
 }
 
@@ -305,7 +300,8 @@ int
 read (int fd, void *buffer, unsigned size)
 { 
   struct thread *cur = thread_current();
-  //is_user_vaddr(buffer);
+  if(!is_user_vaddr(buffer)) exit(-1);
+  if(!buffer) exit(-1);
 
   if (fd == 0){
     int i;
@@ -314,11 +310,9 @@ read (int fd, void *buffer, unsigned size)
         return i;
     }   
   }
-  else if(fd == 1)
-    return -1;
+  else if(fd == 1) return -1;
   else if (fd > 2){
-    if (!cur->file_fdt[fd]) 
-      exit(-1);
+    if (!cur->file_fdt[fd]) exit(-1);
     return file_read(cur->file_fdt[fd], buffer, size);
   }
 }
@@ -330,21 +324,19 @@ write (int fd, const void *buffer, unsigned size)
   struct thread *cur = thread_current();
   int ret;
 
+  if(!is_user_vaddr(buffer)) exit(-1);
+  if(!buffer) exit(-1);
+
   //lock_acquire(&file_lock);
-  if (fd == 0)
-    ret = -1;
+  if (fd == 0) ret = -1;
   else if (fd == 1) {
     putbuf(buffer, size);
     ret = size;
   } 
   else if (fd > 2){
-    if (! cur->file_fdt[fd])
-      //lock_release(&file_lock); 
-      exit(-1);
+    if (! cur->file_fdt[fd]) exit(-1);
     ret = file_write(cur->file_fdt[fd], buffer, size);
-  }
-  //lock_release(&file_lock); 
-  
+  }  
   return ret;
 }
 
@@ -353,8 +345,7 @@ void
 seek (int fd, unsigned position) 
 {
   struct thread *cur = thread_current();
-  if(!cur->file_fdt[fd])
-    exit(-1);
+  if(!cur->file_fdt[fd]) exit(-1);
   return file_seek(cur->file_fdt[fd], position); 
 }
 
@@ -363,8 +354,7 @@ unsigned
 tell (int fd) 
 {
   struct thread *cur = thread_current();
-  if(!cur->file_fdt[fd])
-    exit(-1);
+  if(!cur->file_fdt[fd]) exit(-1);
   return file_tell(cur->file_fdt[fd]); 
 }
 
@@ -373,19 +363,10 @@ void
 close (int fd)
 {
   struct thread *cur = thread_current();
-  if (! cur->file_fdt[fd]) 
-    exit(-1);
+  if (! cur->file_fdt[fd]) exit(-1);
   
   file_close(cur->file_fdt[fd]);
   cur->file_fdt[fd] = NULL;
 
   return ;
-}
-
-void
-is_valid_file (const char *file)
-{
-  if(!file) exit(-1);
-  if(!is_user_vaddr(file)) exit(-1);
-  //if(pagedir_get_page(cur->pagedir, file)) exit(-1);
 }
