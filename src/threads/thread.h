@@ -104,7 +104,6 @@ struct thread
     struct list child;                  /* list of child of this process */
     struct list_elem childelem;         /* list element for child */
     struct file* file_fdt[64];          /* file descriptor table */
-    int next_fd;
     int exit_status;                    /* we should store exit status for child process */
   #endif
 

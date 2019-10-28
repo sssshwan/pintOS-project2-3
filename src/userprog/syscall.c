@@ -40,6 +40,7 @@ syscall_handler (struct intr_frame *f)
   int *ptr = f->esp;
   struct thread *cur = thread_current(); 
 
+  /* pj2: check vality of pointer */
   if (!is_user_vaddr (ptr))  
     return;
 
@@ -49,9 +50,7 @@ syscall_handler (struct intr_frame *f)
   if (*ptr < SYS_HALT || *ptr > SYS_INUMBER)
     return;
 
-  //printf("syscall num : %d\n", *(uint32_t *)(f->esp));
-  //hex_dump(f->esp, f->esp, 100, 1); 
-	  
+  /* case each system call */
   switch (*ptr)
   {
     /* case halt */
@@ -64,19 +63,23 @@ syscall_handler (struct intr_frame *f)
     /* case exit */
     case SYS_EXIT: 
     {
+      /* pj2: check vality of pointer */
       if (!is_user_vaddr (ptr + 1))
       return;
 
+      /* pj2: call exit */
       exit (*(ptr + 1));
       break;
     }
 			
     /* case exec */
     case SYS_EXEC:
-    {
+    { 
+      /* pj2: check vality of pointer */
       if (!is_user_vaddr (ptr + 1))
 	      return;
 			
+       /* pj2: call exec */
       pid_t result = exec (*(ptr + 1));
       f->eax = result;
       break;
@@ -85,9 +88,11 @@ syscall_handler (struct intr_frame *f)
     /* case wait */
     case SYS_WAIT:
     {
+       /* pj2: check vality of pointer */
       if (!is_user_vaddr (ptr + 1))
         return;
 				
+       /* pj2: call wait */
       int result = wait (*(ptr + 1));
       f->eax = result;
       break;
@@ -95,12 +100,12 @@ syscall_handler (struct intr_frame *f)
 
     /* case create */
     case SYS_CREATE: 
-    {
-      if (!is_user_vaddr (ptr + 1))
-        return;
-      if (!is_user_vaddr (ptr + 2))
+    { 
+      /* pj2: check vality of pointer */
+      if (!is_user_vaddr (ptr + 1) || !is_user_vaddr (ptr + 2))
         return;
 
+      /* pj2: call create */
       bool result = create (*(ptr + 1), *(ptr + 2));f->eax = result;
       break;
     }
@@ -108,9 +113,11 @@ syscall_handler (struct intr_frame *f)
     /* case remove */
     case SYS_REMOVE: 
     {
+      /* pj2: check vality of pointer */
       if (!is_user_vaddr (ptr + 1))
         return;
 
+      /* pj2: call remove */
       bool result = remove (*(ptr + 1));
       f->eax = result;
       break;
@@ -118,21 +125,25 @@ syscall_handler (struct intr_frame *f)
 
     /* case open */
     case SYS_OPEN: 
-    {
+    { 
+      /* pj2: check vality of pointer */
       if (!is_user_vaddr (ptr + 1))
         return;
 
+      /* pj2: call open */
       int result = open (*(ptr + 1));
       f->eax = result;
       break;
     }
 
-    /* case fileszie */
+    /* case filesize */
     case SYS_FILESIZE: 
     {
+      /* pj2: check vality of pointer */
       if (!is_user_vaddr (ptr + 1))
         return;
 
+       /* pj2: call filesize */
       int result = filesize (*(ptr + 1));
       f->eax = result;
       break;
@@ -140,16 +151,12 @@ syscall_handler (struct intr_frame *f)
 
     /* case read */
     case SYS_READ: 
-    {
-      if (!is_user_vaddr (ptr + 1))
-        return;
-      
-      if (!is_user_vaddr (ptr + 2))
+    { 
+       /* pj2: check vality of pointer */
+      if (!is_user_vaddr (ptr + 1) || !is_user_vaddr (ptr + 2) || !is_user_vaddr (ptr + 3))
         return;
 
-      if (!is_user_vaddr (ptr + 3))
-        return;
-		
+      /* pj2: call read */
       int result = read (*(ptr + 1), *(ptr + 2), *(ptr + 3));
       f->eax = result;
       break; 
@@ -158,15 +165,11 @@ syscall_handler (struct intr_frame *f)
     /* case write */
     case SYS_WRITE: 
     {
-      if (!is_user_vaddr (ptr + 1))
+       /* pj2: check vality of pointer */
+      if (!is_user_vaddr (ptr + 1) || !is_user_vaddr (ptr + 2) || !is_user_vaddr (ptr + 3))
         return;
-			
-      if (!is_user_vaddr (ptr + 2))
-        return;
-			
-      if (!is_user_vaddr (ptr + 3))
-        return;
-      
+
+      /* pj2: call write */    
       int result = write (*(ptr + 1), *(ptr + 2), *(ptr + 3));
       f->eax = result;
       break;
@@ -174,12 +177,12 @@ syscall_handler (struct intr_frame *f)
 		
     /* case seek */
     case SYS_SEEK: 
-    {
-      if (!is_user_vaddr (ptr + 1))
+    { 
+      /* pj2: check vality of pointer */
+      if (!is_user_vaddr (ptr + 1) || !is_user_vaddr (ptr + 2))
         return;
-      if (!is_user_vaddr (ptr + 2))
-        return;
-			  
+
+       /* pj2: call seek */    
       seek (*(ptr + 1), *(ptr + 2)); 
       break;
     }
@@ -187,9 +190,11 @@ syscall_handler (struct intr_frame *f)
     /* case tell */
     case SYS_TELL: 
     {
+       /* pj2: check vality of pointer */
       if(!is_user_vaddr (ptr + 1))
         return;
-  
+
+      /* pj2: call tell */    
       unsigned result = tell (*(ptr + 1));
       f->eax = result;
       break;
@@ -198,9 +203,11 @@ syscall_handler (struct intr_frame *f)
     /* case close */
     case SYS_CLOSE:
     {
+      /* pj2: check vality of pointer */
       if(!is_user_vaddr (ptr + 1))
         return;
 
+       /* pj2: call close */    
       close (*(ptr + 1));
       break;
     }
@@ -276,9 +283,12 @@ open (const char *file)
 
   struct thread *cur = thread_current();
 
+  /* pj2: ile deny write when thread is file related*/
   if(strcmp(thread_name(), file) == 0)
     file_deny_write(fp);
 
+
+  /* pj2: find smallest number of available fd */
   int i;
   for(i=3; i<64; i++){
     if(!cur->file_fdt[i]){
@@ -305,17 +315,23 @@ int
 read (int fd, void *buffer, unsigned size)
 { 
   struct thread *cur = thread_current();
+
+  /* pj2: check validty of pointer */
   if(!is_user_vaddr(buffer)) exit(-1);
   if(!buffer) exit(-1);
 
-  if (fd == 0){
+  /* pj2: case stanard input */
+  if (fd == 0){  
     int i;
     for (i = 0; i < size; i++)
       ((uint8_t *) buffer)[i] = input_getc();
     return size;   
   }
-  else if(fd == 1) return -1;
-  else if (fd > 2){
+  /* pj2: case stanard output */
+  else if(fd == 1)   
+    return -1;
+  /* pj2: case normal file descriptor */
+  else if (fd > 2){ 
     if (!cur->file_fdt[fd]) exit(-1);
     return file_read(cur->file_fdt[fd], buffer, size);
   }
@@ -328,16 +344,20 @@ write (int fd, const void *buffer, unsigned size)
   struct thread *cur = thread_current();
   int ret;
 
+  /* pj2: check validty of pointer */
   if(!is_user_vaddr(buffer)) exit(-1);
   if(!buffer) exit(-1);
   if(!pagedir_get_page(cur->pagedir, buffer)) exit(-1);
- 
+  
+  /* pj2: case stanard input */
   if (fd == 0) return -1;
+  /* pj2: case stanard output */
   else if (fd == 1) {
     putbuf(buffer, size);
     return size;
   }
   else if (fd == 2) ret = -1;
+  /* pj2: case normal file descriptor */
   else if (fd > 2){
     if (! cur->file_fdt[fd]) exit(-1);
     return file_write(cur->file_fdt[fd], buffer, size);
