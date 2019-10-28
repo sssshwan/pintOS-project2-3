@@ -26,23 +26,25 @@ void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
 
-struct lock file_lock;
 
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
-  lock_init(&file_lock);
 }
 
 static void
 syscall_handler (struct intr_frame *f) 
 {
 
-  int *ptr = f->esp; 
+  int *ptr = f->esp;
+  struct thread *cur = thread_current(); 
 
   if (!is_user_vaddr (ptr))  
     return;
+
+  if (!pagedir_get_page (cur->pagedir, ptr))
+    exit(-1);
 
   if (*ptr < SYS_HALT || *ptr > SYS_INUMBER)
     return;
@@ -328,7 +330,8 @@ write (int fd, const void *buffer, unsigned size)
 
   if(!is_user_vaddr(buffer)) exit(-1);
   if(!buffer) exit(-1);
-
+  if(!pagedir_get_page(cur->pagedir, buffer)) exit(-1);
+ 
   if (fd == 0) return -1;
   else if (fd == 1) {
     putbuf(buffer, size);
