@@ -38,6 +38,7 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
+
   int *ptr = f->esp; 
 
   if (!is_user_vaddr (ptr))  
@@ -203,7 +204,6 @@ syscall_handler (struct intr_frame *f)
     }
   }
   return;
- 
 }
 
 /* pj2: halt system call */
@@ -274,6 +274,9 @@ open (const char *file)
 
   struct thread *cur = thread_current();
 
+  if(strcmp(thread_name(), file) == 0)
+    file_deny_write(fp);
+
   int i;
   for(i=3; i<64; i++){
     if(!cur->file_fdt[i]){
@@ -305,10 +308,9 @@ read (int fd, void *buffer, unsigned size)
 
   if (fd == 0){
     int i;
-    for (i = 0; i < size; i ++) {
-      if (((char *)buffer)[i] == '\0') 
-        return i;
-    }   
+    for (i = 0; i < size; i++)
+      ((uint8_t *) buffer)[i] = input_getc();
+    return size;   
   }
   else if(fd == 1) return -1;
   else if (fd > 2){
@@ -327,17 +329,17 @@ write (int fd, const void *buffer, unsigned size)
   if(!is_user_vaddr(buffer)) exit(-1);
   if(!buffer) exit(-1);
 
-  //lock_acquire(&file_lock);
-  if (fd == 0) ret = -1;
+  if (fd == 0) return -1;
   else if (fd == 1) {
     putbuf(buffer, size);
-    ret = size;
-  } 
+    return size;
+  }
+  else if (fd == 2) ret = -1;
   else if (fd > 2){
     if (! cur->file_fdt[fd]) exit(-1);
-    ret = file_write(cur->file_fdt[fd], buffer, size);
+    return file_write(cur->file_fdt[fd], buffer, size);
   }  
-  return ret;
+  return -1;
 }
 
 /* pj2: seek system call */
