@@ -185,23 +185,22 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
   struct thread *t;
   struct thread *cur = thread_current ();
   struct list_elem *e;
-  
-  for (e = list_begin (&(cur->child)); e != list_end (&(cur->child)); e = list_next (e))
-  {
-    t = list_entry(e, struct thread, childelem);
-    if (child_tid == t->tid) {
-      sema_down (&(t->sema_child));
-      list_remove (&(t->childelem));
-      sema_up (&t->sema_mem);
-      return t->exit_status;
-    }   
+
+
+  t = get_thread_by_tid(child_tid);
+  if (t){
+    sema_down (&(t->sema_child));
+    list_remove (&(t->childelem));
+    sema_up (&t->sema_mem);
+    return t->exit_status;
   }
-  return -1; 
+  else
+    return(-1);
 }
 
 /* Free the current process's resources. */

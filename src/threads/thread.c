@@ -595,6 +595,25 @@ allocate_tid (void)
 
   return tid;
 }
+
+
+struct thread*
+get_thread_by_tid (tid_t tid)
+{
+  struct list_elem *el;
+  struct thread *t;
+  struct thread *cur = thread_current ();
+  
+  for (el = list_begin (&(cur->child)); el != list_end (&(cur->child)); el = list_next (el))
+  {
+    t = list_entry (el, struct thread, childelem);
+    if (t->tid == tid)
+      return t;
+  }
+  
+  return NULL;
+}
+
 
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
