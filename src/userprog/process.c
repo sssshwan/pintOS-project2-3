@@ -64,83 +64,6 @@ get_cmd_name (void *file_name)
   return strtok_r (temp, " ", &last);
 }
 
-/* pj2 */
-/* get cmd and argument and stack it */
-void
-stack_argument (void *file_name, void **esp)
-{
-  int argc = 0;
-  char **argv;
-  char temp[1024];
-  char *last;
-  char *token;
-  int idx = 0;
-  int len = 0;
-  int tot_len = 0;
-
-  /* store file name to tokenize */
-  strlcpy (temp, file_name, strlen (file_name) + 1); 
-
-  /* let's count # of arg first */
-  /* we should know the argc so that we can allocate mem */
-  token = strtok_r (temp, " ", &last);
-  while (token)
-  {
-    argc++;
-    token = strtok_r(NULL, " ", &last);
-  }
-  /* allocate memory for argv */
-  argv = (char **) malloc (sizeof (char *) * argc); 
-  
-  /* now we allocate memory for arg, so let's store this */
-  /* temp has modified so copy again */
-  strlcpy (temp, file_name, strlen (file_name) + 1);
-  token = strtok_r (temp, " ", &last);
-  while (token)
-  {
-    argv[idx++] = token;
-    token = strtok_r(NULL, " ", &last);
-  }
-
-  /* here we stored all arg in argv so let's push to stack! */
-  /* keep that stack grow backward! */
-  /* First, push argv[argc-1] ~ argv[0] */
-  for (idx = argc-1; idx >= 0; idx--)
-  {
-    /* esp goes down */
-    *esp -= strlen(argv[idx]) + 1; 
-     /* to make word align soon */
-    tot_len += strlen(argv[idx]) + 1;
-    strlcpy (*esp, argv[idx], strlen(argv[idx]) + 1);
-    /* keep esps' address in argv[idx] to use later */
-    argv[idx] = *esp; 
-  }
-
-  /* And then, push word align */
-  *esp -= (4 - tot_len % 4) % 4; 
-  /* we should make total length with multiple of 4. */
-
-  /* push else */
-  *esp -= 4;
-  **(uint32_t **)esp = NULL;   /*  Null */
-
-  /* address of argv[argc-1] ~ argv[0] */
-  for (idx = argc-1; idx >= 0; idx--) 
-  {
-    *esp -= 4;
-    **(uint32_t **)esp = argv[idx];
-  }
-  *esp -= 4;
-  **(uint32_t **)esp = *esp + 4;   /* address of argv */
-  *esp -= 4;
-  **(uint32_t **)esp = argc;   /* argc */
-  *esp -= 4;
-  **(uint32_t **)esp = NULL;   /* return address */
-
-
-  free(argv); /* free argv */ 
-}
-
 /* A thread function that loads a user process and starts it
    running. */
 static void
@@ -159,7 +82,6 @@ start_process (void *file_name_)
   char *ptr;
   char *token;
   int idx = 0;
-  int len = 0;
   int tot_len = 0;
 
   /* pj2: for debug check what is file_name */
