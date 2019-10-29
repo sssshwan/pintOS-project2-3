@@ -78,22 +78,25 @@ stack_argument (void *file_name, void **esp)
   int len = 0;
   int tot_len = 0;
 
-  strlcpy (temp, file_name, strlen (file_name) + 1); /* store file name to tokenize */
+  /* store file name to tokenize */
+  strlcpy (temp, file_name, strlen (file_name) + 1); 
 
   /* let's count # of arg first */
   /* we should know the argc so that we can allocate mem */
   token = strtok_r (temp, " ", &last);
-  while (token != NULL)
+  while (token)
   {
     argc++;
     token = strtok_r(NULL, " ", &last);
   }
-  argv = (char **) malloc (sizeof (char *) * argc); /* allocate memory for argv */
+  /* allocate memory for argv */
+  argv = (char **) malloc (sizeof (char *) * argc); 
   
   /* now we allocate memory for arg, so let's store this */
-  strlcpy (temp, file_name, strlen (file_name) + 1); /* temp has modified so copy again */
+  /* temp has modified so copy again */
+  strlcpy (temp, file_name, strlen (file_name) + 1);
   token = strtok_r (temp, " ", &last);
-  while (token != NULL)
+  while (token)
   {
     argv[idx++] = token;
     token = strtok_r(NULL, " ", &last);
@@ -104,21 +107,24 @@ stack_argument (void *file_name, void **esp)
   /* First, push argv[argc-1] ~ argv[0] */
   for (idx = argc-1; idx >= 0; idx--)
   {
-    len = strlen(argv[idx]);
-    *esp -= len + 1; /* esp goes down */
-    tot_len += len + 1; /* to make word align soon */
-    strlcpy (*esp, argv[idx], len + 1);
-    argv[idx] = *esp; /* keep esps' address in argv[idx] to use later */
+    /* esp goes down */
+    *esp -= strlen(argv[idx]) + 1; 
+     /* to make word align soon */
+    tot_len += strlen(argv[idx]) + 1;
+    strlcpy (*esp, argv[idx], strlen(argv[idx]) + 1);
+    /* keep esps' address in argv[idx] to use later */
+    argv[idx] = *esp; 
   }
 
   /* And then, push word align */
-  *esp -= (4 - tot_len % 4) % 4; /* we should make total length with multiple of 4. */
+  *esp -= (4 - tot_len % 4) % 4; 
+  /* we should make total length with multiple of 4. */
 
   /* push else */
   *esp -= 4;
-  **(uint32_t **)esp = 0;   /*  Null */
+  **(uint32_t **)esp = NULL;   /*  Null */
 
-  /*address of argv[argc-1] ~ argv[0] */
+  /* address of argv[argc-1] ~ argv[0] */
   for (idx = argc-1; idx >= 0; idx--) 
   {
     *esp -= 4;
@@ -129,9 +135,8 @@ stack_argument (void *file_name, void **esp)
   *esp -= 4;
   **(uint32_t **)esp = argc;   /* argc */
   *esp -= 4;
-  **(uint32_t **)esp = 0;   /* return address */
+  **(uint32_t **)esp = NULL;   /* return address */
 
-  //hex_dump(*esp, *esp, 100, 1);
 
   free(argv); /* free argv */ 
 }
@@ -148,6 +153,15 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  int argc = 0;
+  char **argv;
+  char temp[1024];
+  char *ptr;
+  char *token;
+  int idx = 0;
+  int len = 0;
+  int tot_len = 0;
+
   /* pj2: for debug check what is file_name */
   // printf ("cmd_name : %s\n",cmd_name);
 
@@ -160,15 +174,75 @@ start_process (void *file_name_)
 
   /* pj2 */
   /* if load success we should passing arguments to the stack */
-  if (success) 
-  {
-    stack_argument(file_name, &if_.esp);
-  }
+  if (success){
+    /* store file name to tokenize */
+    strlcpy (temp, file_name, strlen (file_name) + 1); 
 
-  /* If load failed, quit. */
-  palloc_free_page (file_name);
-  if (!success) 
+    /* let's count # of arg first */
+    /* we should know the argc so that we can allocate mem */
+    token = strtok_r (temp, " ", &ptr);
+    while (token)
+    {
+      argc++;
+      token = strtok_r(NULL, " ", &ptr);
+    }
+    /* allocate memory for argv */
+    argv = (char **) malloc (sizeof (char *) * argc); 
+    
+    /* now we allocate memory for arg, so let's store this */
+    /* temp has modified so copy again */
+    strlcpy (temp, file_name, strlen (file_name) + 1);
+    token = strtok_r (temp, " ", &ptr);
+    while (token)
+    {
+      argv[idx++] = token;
+      token = strtok_r(NULL, " ", &ptr);
+    }
+
+    /* here we stored all arg in argv so let's push to stack! */
+    /* keep that stack grow backward! */
+    /* First, push argv[argc-1] ~ argv[0] */
+    for (idx = argc-1; idx >= 0; idx--)
+    {
+      /* esp goes down */
+      if_.esp -= strlen(argv[idx]) + 1; 
+      /* to make word align soon */
+      tot_len += strlen(argv[idx]) + 1;
+      strlcpy (if_.esp, argv[idx], strlen(argv[idx]) + 1);
+      /* keep esps' address in argv[idx] to use later */
+      argv[idx] = if_.esp; 
+    }
+
+    /* And then, push word align */
+    if_.esp -= (4 - tot_len % 4) % 4; 
+    /* we should make total length with multiple of 4. */
+
+    /* push else */
+    if_.esp -= 4;
+    *(char **)if_.esp = NULL;   /*  Null */
+
+    /* address of argv[argc-1] ~ argv[0] */
+    for (idx = argc-1; idx >= 0; idx--) 
+    {
+      if_.esp -= 4;
+      *(char **)if_.esp = argv[idx];
+    }
+    if_.esp -= 4;
+    *(char **)if_.esp = if_.esp + 4;   /* address of argv */
+    if_.esp -= 4;
+    *(uint32_t *)if_.esp = argc;   /* argc */
+    if_.esp -= 4;
+    *(uint32_t *)if_.esp = NULL;   /* return address */
+
+
+    free(argv); /* free argv */
+    palloc_free_page (file_name); 
+  }
+  else
+  {
+    palloc_free_page (file_name); 
     thread_exit ();
+  }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in

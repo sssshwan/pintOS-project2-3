@@ -11,6 +11,5 @@ void process_activate (void);
 /* pj2 */
 /* what we defined */
 char * get_cmd_name (void *file_name_);
-void stack_argument (void *file_name_, void **esp);
 
 #endif /* userprog/process.h */
