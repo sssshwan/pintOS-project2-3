@@ -26,11 +26,13 @@ void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
 
+static struct lock filesys_lock; 
 
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init (&filesys_lock);
 }
 
 static void
@@ -237,8 +239,13 @@ exit (int status)
 /* pj2: exec system call */
 pid_t
 exec (const char *cmd_line)
-{
-  return process_execute(cmd_line);
+{ 
+  tid_t tid;
+  lock_acquire (&filesys_lock);
+  tid = process_execute(cmd_line);
+  lock_release (&filesys_lock);
+
+  return tid;
 }
 
 /* pj2: wait system call */
@@ -315,26 +322,29 @@ int
 read (int fd, void *buffer, unsigned size)
 { 
   struct thread *cur = thread_current();
-
+  int ret;
   /* pj2: check validty of pointer */
   if(!is_user_vaddr(buffer)) exit(-1);
   if(!buffer) exit(-1);
 
   /* pj2: case stanard input */
+  lock_acquire (&filesys_lock);
   if (fd == 0){  
     int i;
     for (i = 0; i < size; i++)
       ((uint8_t *) buffer)[i] = input_getc();
-    return size;   
+    ret = size;   
   }
   /* pj2: case stanard output */
   else if(fd == 1)   
-    return -1;
+    ret = -1;
   /* pj2: case normal file descriptor */
   else if (fd > 2){ 
     if (!cur->file_fdt[fd]) exit(-1);
-    return file_read(cur->file_fdt[fd], buffer, size);
+    ret = file_read(cur->file_fdt[fd], buffer, size);
   }
+  lock_release (&filesys_lock);
+  return ret;
 }
 
 /* pj2: write system call */
@@ -350,19 +360,22 @@ write (int fd, const void *buffer, unsigned size)
   if(!pagedir_get_page(cur->pagedir, buffer)) exit(-1);
   
   /* pj2: case stanard input */
-  if (fd == 0) return -1;
+  lock_acquire(&filesys_lock);
+  if (fd == 0) 
+    ret = -1;
   /* pj2: case stanard output */
   else if (fd == 1) {
     putbuf(buffer, size);
-    return size;
+    ret = size;
   }
   else if (fd == 2) ret = -1;
   /* pj2: case normal file descriptor */
   else if (fd > 2){
     if (! cur->file_fdt[fd]) exit(-1);
-    return file_write(cur->file_fdt[fd], buffer, size);
+    ret = file_write(cur->file_fdt[fd], buffer, size);
   }  
-  return -1;
+  lock_release (&filesys_lock);
+  return ret;
 }
 
 /* pj2: seek system call */
