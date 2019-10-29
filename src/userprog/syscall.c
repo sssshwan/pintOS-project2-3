@@ -241,8 +241,11 @@ pid_t
 exec (const char *cmd_line)
 { 
   tid_t tid;
+  /* lock acquire */
   lock_acquire (&filesys_lock);
   tid = process_execute(cmd_line);
+
+  /* lock release */
   lock_release (&filesys_lock);
 
   return tid;
@@ -312,9 +315,14 @@ int
 filesize (int fd) 
 { 
   struct thread *cur = thread_current();
-  if(! cur->file_fdt[fd]) exit(-1);
+  int ret;
 
-  return file_length(cur->file_fdt[fd]);
+  if(! cur->file_fdt[fd]) exit(-1);
+  lock_acquire (&filesys_lock);
+  ret = file_length(cur->file_fdt[fd]);
+  lock_release (&filesys_lock);
+
+  return ret;
 }
 
 /* pj2: read system call */
@@ -328,6 +336,7 @@ read (int fd, void *buffer, unsigned size)
   if(!buffer) exit(-1);
 
   /* pj2: case stanard input */
+  /* lock acquire */
   lock_acquire (&filesys_lock);
   if (fd == 0){  
     int i;
@@ -343,6 +352,7 @@ read (int fd, void *buffer, unsigned size)
     if (!cur->file_fdt[fd]) exit(-1);
     ret = file_read(cur->file_fdt[fd], buffer, size);
   }
+  /* lock release */
   lock_release (&filesys_lock);
   return ret;
 }
@@ -360,6 +370,7 @@ write (int fd, const void *buffer, unsigned size)
   if(!pagedir_get_page(cur->pagedir, buffer)) exit(-1);
   
   /* pj2: case stanard input */
+  /* lock acquire */
   lock_acquire(&filesys_lock);
   if (fd == 0) 
     ret = -1;
@@ -374,6 +385,7 @@ write (int fd, const void *buffer, unsigned size)
     if (! cur->file_fdt[fd]) exit(-1);
     ret = file_write(cur->file_fdt[fd], buffer, size);
   }  
+  /* lock release */
   lock_release (&filesys_lock);
   return ret;
 }
@@ -384,7 +396,11 @@ seek (int fd, unsigned position)
 {
   struct thread *cur = thread_current();
   if(!cur->file_fdt[fd]) exit(-1);
-  return file_seek(cur->file_fdt[fd], position); 
+  lock_acquire (&filesys_lock);
+  file_seek(cur->file_fdt[fd], position);
+  lock_release (&filesys_lock);
+
+  return; 
 }
 
 /* pj2: tell system call */
@@ -392,8 +408,14 @@ unsigned
 tell (int fd) 
 {
   struct thread *cur = thread_current();
+  unsigned ret;
+
   if(!cur->file_fdt[fd]) exit(-1);
-  return file_tell(cur->file_fdt[fd]); 
+  lock_acquire (&filesys_lock);
+  ret = file_tell(cur->file_fdt[fd]); 
+  lock_release (&filesys_lock);
+
+  return ret;
 }
 
 /* pj2: close system call */
@@ -402,9 +424,10 @@ close (int fd)
 {
   struct thread *cur = thread_current();
   if (! cur->file_fdt[fd]) exit(-1);
-  
+  lock_acquire (&filesys_lock);
   file_close(cur->file_fdt[fd]);
   cur->file_fdt[fd] = NULL;
+  lock_release (&filesys_lock);
 
   return ;
 }
