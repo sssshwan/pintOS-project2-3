@@ -5,12 +5,17 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "vm/page.h"
+#include "devices/block.h"
+#include "userprog/process.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
 static void kill (struct intr_frame *);
 static void page_fault (struct intr_frame *);
+
+bool verify_stack (int32_t addr, int32_t esp);
 
 /* Registers handlers for interrupts that can be caused by user
    programs.
@@ -123,10 +128,12 @@ kill (struct intr_frame *f)
 static void
 page_fault (struct intr_frame *f) 
 {
+  printf("==page_fault in!==\n");
   bool not_present;  /* True: not-present page, false: writing r/o page. */
   bool write;        /* True: access was write, false: access was read. */
   bool user;         /* True: access by user, false: access by kernel. */
   void *fault_addr;  /* Fault address. */
+  struct vm_entry *vme; /* pj3 */
 
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
@@ -136,7 +143,7 @@ page_fault (struct intr_frame *f)
      [IA32-v3a] 5.15 "Interrupt 14--Page Fault Exception
      (#PF)". */
   asm ("movl %%cr2, %0" : "=r" (fault_addr));
-
+  printf ("fault_addr: %d\n", fault_addr);
   /* Turn interrupts back on (they were only off so that we could
      be assured of reading CR2 before it changed). */
   intr_enable ();
@@ -149,21 +156,54 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-   /* pj2 */
-   if(!user) exit(-1);
-   if(!write) exit(-1);
-   if(not_present) exit(-1);
+  if (!not_present)
+    exit(-1);
 
-   if(is_kernel_vaddr(fault_addr)) exit(-1);
+  vme = find_vme (fault_addr);
 
-  /* To implement virtual memory, delete the rest of the function
-     body, and replace it with code that brings in the page to
-     which fault_addr refers. */
-  printf ("Page fault at %p: %s error %s page in %s context.\n",
-          fault_addr,
-          not_present ? "not present" : "rights violation",
-          write ? "writing" : "reading",
-          user ? "user" : "kernel");
-  kill (f);
+  if (vme == NULL)
+  {
+    printf ("fault_vme\n");
+    exit(-1);  
+  }
+
+  printf ("we found vme\n");
+  printf ("with read_bytes: %d\n", vme->read_bytes);
+  printf ("with vaddr: %d\n", vme->vaddr);
+  printf ("with file_length: %d\n", file_length (vme->file));
+
+  // if (!verify_stack ((int32_t) fault_addr, f->esp))
+  //   exit (-1);
+  if (!handle_mm_fault (vme))
+  {
+    printf ("fault_mm\n");
+    exit(-1);
+  }
+
+/*====================================================*/
+//    /* pj2 */
+//    if(!user) exit(-1);
+//    if(!write) exit(-1);
+//    if(not_present) exit(-1);
+
+//    if(is_kernel_vaddr(fault_addr)) exit(-1);
+
+//   /* To implement virtual memory, delete the rest of the function
+//      body, and replace it with code that brings in the page to
+//      which fault_addr refers. */
+//   printf ("Page fault at %p: %s error %s page in %s context.\n",
+//           fault_addr,
+//           not_present ? "not present" : "rights violation",
+//           write ? "writing" : "reading",
+//           user ? "user" : "kernel");
+//   kill (f);
+/*====================================================*/
+
 }
 
+bool
+verify_stack (int32_t addr, int32_t esp)
+{
+  return is_user_vaddr (addr) && esp - addr <= 32
+      && 0xC0000000UL - addr <= 8 * 1024 * 1024;
+}

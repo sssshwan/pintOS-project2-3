@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <hash.h>
 
 #include "threads/synch.h"
 
@@ -109,6 +110,9 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+    /* pj3 */
+    struct hash vm;                     /* hash table that manage vaddr */
   };
 
 /* If false (default), use round-robin scheduler.

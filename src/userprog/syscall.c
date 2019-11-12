@@ -7,6 +7,7 @@
 #include "threads/synch.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
+#include "vm/page.h"
 
 typedef int pid_t;
 
@@ -26,6 +27,12 @@ void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
 
+/* pj3 */
+struct vm_entry * check_address (void* addr, void* esp /*Unused*/);
+void check_valid_buffer (void* buffer, unsigned size, void* esp, bool to_write);
+void check_valid_string (const void* str, void* esp);
+
+
 static struct lock filesys_lock; 
 
 void
@@ -38,9 +45,13 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
+  printf ("==syscall_handelr in!==\n");
 
   int *ptr = f->esp;
   struct thread *cur = thread_current(); 
+
+  /* pj3 */
+  check_address (ptr, ptr);
 
   /* pj2: check vality of pointer */
   if (!is_user_vaddr (ptr))  
@@ -430,4 +441,32 @@ close (int fd)
   lock_release (&filesys_lock);
 
   return ;
+}
+
+/* pj3: check address */
+struct vm_entry * 
+check_address (void* addr, void* esp /*Unused*/) 
+{
+  if(addr < (void *)0x08048000 || addr >= (void *)0xc0000000)
+    exit(-1);
+  /*addr이 vm_entry에 존재하면 vm_entry를 반환하도록 코드 작성 */ 
+  /*find_vme() 사용*/
+  return find_vme (addr);
+}
+
+void 
+check_valid_buffer (void* buffer, unsigned size, void* esp, bool to_write)
+{
+  /* 인자로 받은 buffer부터 buffer + size까지의 크기가 한 페이지의 크기를 넘을 수도 있음 */
+  /* check_address를 이용해서 주소의 유저영역 여부를 검사함과 동시 에 vm_entry 구조체를 얻음 */
+  /* 해당 주소에 대한 vm_entry 존재여부와 vm_entry의 writable 멤 버가 true인지 검사 */
+  /* 위 내용을 buffer 부터 buffer + size까지의 주소에 포함되는 vm_entry들에 대해 적용 */
+  check_address (buffer, esp);
+  check_address (buffer+size, esp);
+}
+
+void 
+check_valid_string (const void* str, void* esp)
+{
+  check_address (str, esp);
 }

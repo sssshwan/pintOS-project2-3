@@ -13,3 +13,6 @@ void process_activate (void);
 char * get_cmd_name (void *file_name_);
 
 #endif /* userprog/process.h */
+
+/* pj3 */
+bool handle_mm_fault (struct vm_entry *vme);
