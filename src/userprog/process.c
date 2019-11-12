@@ -513,6 +513,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
 
+  printf ("===load_segment===\n");
+  show_vm (&thread_current ()->vm);
+
   /* pj3 */
   /* use vm_entry */
   struct vm_entry *vme;

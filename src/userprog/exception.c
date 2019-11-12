@@ -171,6 +171,8 @@ page_fault (struct intr_frame *f)
   printf ("with read_bytes: %d\n", vme->read_bytes);
   printf ("with vaddr: %d\n", vme->vaddr);
   printf ("with file_length: %d\n", file_length (vme->file));
+  
+  show_vm (&thread_current ()->vm);
 
   // if (!verify_stack ((int32_t) fault_addr, f->esp))
   //   exit (-1);

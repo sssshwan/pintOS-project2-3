@@ -69,12 +69,6 @@ find_vme (void *vaddr)
   while (hash_next (&i))
   {
     vme = hash_entry (hash_cur (&i), struct vm_entry, elem);
-    if (vme->type == VM_BIN)
-    {
-      printf ("%dth vme's file_length: %d\n", ++id, file_length (vme->file));
-      printf ("%dth vme's vaddr: %d\n", id, vme->vaddr);
-      printf ("%dth vme's read_bytes: %d\n", id, vme->read_bytes);
-    }
 
     if (vme->vaddr == pg_round_down(vaddr))
     {
@@ -116,4 +110,25 @@ load_file (void *kaddr, struct vm_entry *vme)
 
   memset (kaddr + num_read, 0, vme->zero_bytes);
   return true;
+}
+
+void
+show_vm (const struct hash* vm)
+{
+  printf ("===show_vm===\n");
+  struct hash_iterator i;
+  struct vm_entry *ee;
+  int id = 0;
+
+  hash_first (&i, vm);
+  while (hash_next (&i))
+  {
+    ee = hash_entry (hash_cur (&i), struct vm_entry, elem);
+    if (ee->type == VM_BIN)
+    {
+      printf ("%dth vme's file_length: %d\n", ++id, file_length (ee->file));
+      printf ("%dth vme's vaddr: %d\n", id, ee->vaddr);
+      printf ("%dth vme's read_bytes: %d\n", id, ee->read_bytes);
+    }
+  }
 }

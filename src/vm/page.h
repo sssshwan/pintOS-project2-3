@@ -34,3 +34,4 @@ bool delete_vme (struct hash *vm, struct vm_entry *vme);
 struct vm_entry *find_vme (void * vaddr);
 void vm_destroy (struct hash *vm);
 bool load_file (void *kaddr, struct vm_entry *vme);
+void show_vm (const struct hash* vm);
