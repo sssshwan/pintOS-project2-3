@@ -128,7 +128,8 @@ kill (struct intr_frame *f)
 static void
 page_fault (struct intr_frame *f) 
 {
-  printf("==page_fault in!==\n");
+  // printf("==page_fault in!==\n");
+  // show_vm ();
   bool not_present;  /* True: not-present page, false: writing r/o page. */
   bool write;        /* True: access was write, false: access was read. */
   bool user;         /* True: access by user, false: access by kernel. */
@@ -143,7 +144,10 @@ page_fault (struct intr_frame *f)
      [IA32-v3a] 5.15 "Interrupt 14--Page Fault Exception
      (#PF)". */
   asm ("movl %%cr2, %0" : "=r" (fault_addr));
-  printf ("fault_addr: %d\n", fault_addr);
+  // printf ("fault_addr: %d\n", fault_addr);
+
+  if(is_kernel_vaddr(fault_addr)) exit(-1);
+
   /* Turn interrupts back on (they were only off so that we could
      be assured of reading CR2 before it changed). */
   intr_enable ();
@@ -163,22 +167,20 @@ page_fault (struct intr_frame *f)
 
   if (vme == NULL)
   {
-    printf ("fault_vme\n");
+    // printf ("fault_vme\n");
     exit(-1);  
   }
 
-  printf ("we found vme\n");
-  printf ("with read_bytes: %d\n", vme->read_bytes);
-  printf ("with vaddr: %d\n", vme->vaddr);
-  printf ("with file_length: %d\n", file_length (vme->file));
-  
-  show_vm (&thread_current ()->vm);
+  // printf ("we found vme\n");
+  // printf ("with read_bytes: %d\n", vme->read_bytes);
+  // printf ("with vaddr: %d\n", vme->vaddr);
+  // printf ("with file_length: %d\n", file_length (vme->file));
 
   // if (!verify_stack ((int32_t) fault_addr, f->esp))
   //   exit (-1);
   if (!handle_mm_fault (vme))
   {
-    printf ("fault_mm\n");
+    // printf ("fault_mm\n");
     exit(-1);
   }
 

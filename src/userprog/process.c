@@ -354,6 +354,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
   
   //file_deny_write(file);
+  // t->run_file = 
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -438,7 +439,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  // file_close (file);
   return success;
 }
 
@@ -505,16 +506,16 @@ static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
               uint32_t read_bytes, uint32_t zero_bytes, bool writable) 
 {
-  printf ("==load_segment in==\n");
-  printf ("read_bytes: %d\n", read_bytes);
-  printf ("zero_bytes: %d\n", zero_bytes);
-  printf ("file_length: %d\n", file_length (file));
+  // printf ("==load_segment in==\n");
+  // printf ("read_bytes: %d\n", read_bytes);
+  // printf ("zero_bytes: %d\n", zero_bytes);
+  // printf ("file_length: %d\n", file_length (file));
   ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
 
-  printf ("===load_segment===\n");
-  show_vm (&thread_current ()->vm);
+  // printf ("===load_segment===\n");
+  // show_vm ();
 
   /* pj3 */
   /* use vm_entry */
@@ -545,13 +546,13 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       vme->zero_bytes = page_zero_bytes;
 
       insert_vme (&thread_current ()->vm, vme);
-      printf ("==vme_inserted==\n");
-      printf ("vaddr: %d\n", vme->vaddr);
-      printf ("read_bytes: %d\n", vme->read_bytes);
-      printf ("zero_bytes: %d\n", vme->zero_bytes);
-      printf ("offset: %d\n",vme->offset);
-      printf ("vm_size: %d\n", hash_size (&thread_current ()->vm));
-      printf ("vm_file_length: %d\n", file_length (vme->file));
+      // printf ("==vme_inserted==\n");
+      // printf ("vaddr: %d\n", vme->vaddr);
+      // printf ("read_bytes: %d\n", vme->read_bytes);
+      // printf ("zero_bytes: %d\n", vme->zero_bytes);
+      // printf ("offset: %d\n",vme->offset);
+      // printf ("vm_size: %d\n", hash_size (&thread_current ()->vm));
+      // printf ("vm_file_length: %d\n", file_length (vme->file));
       
 /*====================================================*/
       // /* Get a page of memory. */
@@ -579,6 +580,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
       upage += PGSIZE;
+      ofs += page_read_bytes;
     }
   return true;
 }
@@ -588,6 +590,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp) 
 {
+  // printf("===setup_stack===\n");
   uint8_t *kpage;
   bool success = false;
   struct vm_entry *vme;
@@ -627,6 +630,7 @@ setup_stack (void **esp)
 static bool
 install_page (void *upage, void *kpage, bool writable)
 {
+  // printf("==install_page===\n");
   struct thread *t = thread_current ();
 
   /* Verify that there's not already a page at that virtual
@@ -639,9 +643,9 @@ install_page (void *upage, void *kpage, bool writable)
 bool
 handle_mm_fault (struct vm_entry *vme)
 {
+  // printf ("==handle_mm_fault in==\n");
   uint8_t *kpage = palloc_get_page (PAL_USER);
-  printf ("==handle_mm_fault in==\n");
-  printf ("file_length: %d\n", file_length (vme->file));
+  // printf ("file_length: %d\n", file_length (vme->file));
 
   if (kpage==NULL)
     return false;
@@ -649,20 +653,20 @@ handle_mm_fault (struct vm_entry *vme)
   switch (vme->type)
   {
     case VM_BIN:
-      printf ("handle_mm VM_BIN!\n");
-      bool lf_flag = load_file (kpage, vme);
-      printf ("load_file returns %d\n", lf_flag);
+      // printf ("handle_mm VM_BIN!\n");
+      load_file (kpage, vme);
+      // printf ("load_file returns %d\n", lf_flag);
       install_page (vme->vaddr, kpage, vme->writable);
       return true;    
       break;
 
     case VM_FILE:
-      printf ("handle_mm VM_FILE!\n");
+      // printf ("handle_mm VM_FILE!\n");
       return false;
       break;
 
     case VM_ANON:
-      printf ("handle_mm VM_ANON!\n");
+      // printf ("handle_mm VM_ANON!\n");
       return false;
       break;
     

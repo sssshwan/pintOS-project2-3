@@ -45,7 +45,7 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-  printf ("==syscall_handelr in!==\n");
+  // printf ("==syscall_handelr in!==\n");
 
   int *ptr = f->esp;
   struct thread *cur = thread_current(); 
@@ -372,6 +372,7 @@ read (int fd, void *buffer, unsigned size)
 int
 write (int fd, const void *buffer, unsigned size)
 {
+  // printf ("==write==\n");
   struct thread *cur = thread_current();
   int ret;
 
