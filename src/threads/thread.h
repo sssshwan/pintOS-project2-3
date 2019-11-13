@@ -113,6 +113,7 @@ struct thread
 
     /* pj3 */
     struct hash vm;                     /* hash table that manage vaddr */
+    // struct file *file;
   };
 
 /* If false (default), use round-robin scheduler.

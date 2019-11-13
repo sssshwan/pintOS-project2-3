@@ -110,6 +110,7 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
 void *
 palloc_get_page (enum palloc_flags flags) 
 {
+  // show_vm ();
   return palloc_get_multiple (flags, 1);
 }
 

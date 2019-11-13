@@ -94,17 +94,17 @@ vm_destroy_func (struct hash_elem *e, void *aux UNUSED)
 bool 
 load_file (void *kaddr, struct vm_entry *vme) 
 {
-  printf("== load_file in ==\n");
+  // printf("== load_file in ==\n");
   off_t num_read;
 
   /* file_read_at return # of bytes acturally read */
-  printf("file_length: %d\n", file_length (vme->file));
+  // printf("file_length: %d\n", file_length (vme->file));
   num_read = file_read_at (vme->file, kaddr, vme->read_bytes, vme->offset);
 
   if (num_read != vme->read_bytes)
   {
-    printf ("problem in file_read_at\n");
-    printf ("num_read: %d, read_bytes: %d\n",num_read, vme->read_bytes);
+    // printf ("problem in file_read_at\n");
+    // printf ("num_read: %d, read_bytes: %d\n",num_read, vme->read_bytes);
     return false;
   }
 
@@ -113,12 +113,16 @@ load_file (void *kaddr, struct vm_entry *vme)
 }
 
 void
-show_vm (const struct hash* vm)
+show_vm ()
 {
-  printf ("===show_vm===\n");
+  // printf ("===show_vm===\n");
+  struct hash *vm = &thread_current ()->vm;
   struct hash_iterator i;
   struct vm_entry *ee;
   int id = 0;
+  if (hash_size (vm) == 0)
+    return;
+    
 
   hash_first (&i, vm);
   while (hash_next (&i))
