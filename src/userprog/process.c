@@ -674,3 +674,31 @@ handle_mm_fault (struct vm_entry *vme)
       break;
   }
 }
+
+
+void
+stack_growth (void *addr)
+{
+  struct page *kpage;
+  struct vm_entry *vme = (struct vm_entry *)malloc(sizeof(struct vm_entry));
+  
+  vme->type = VM_ANON;
+  vme->vaddr = pg_round_down (addr);
+  vme->writable = true;
+  vme->is_loaded = true;
+
+
+  kpage = alloc_page (PAL_USER | PAL_ZERO);
+  
+  if (!kpage)
+    return;
+
+  
+  lru_list_insert (kpage);
+  install_page (pg_round_down (addr), kpage->kaddr, true);
+
+  kpage->vme = vme;
+
+  insert_vme (&thread_current ()->vm, vme);
+
+}

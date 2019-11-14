@@ -12,7 +12,10 @@ void process_activate (void);
 /* what we defined */
 char * get_cmd_name (void *file_name_);
 
-#endif /* userprog/process.h */
-
 /* pj3 */
 bool handle_mm_fault (struct vm_entry *vme);
+void stack_growth (void *addr);
+
+
+#endif /* userprog/process.h */
+

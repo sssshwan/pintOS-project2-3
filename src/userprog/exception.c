@@ -8,6 +8,8 @@
 #include "vm/page.h"
 #include "devices/block.h"
 #include "userprog/process.h"
+#include "vm/page.h"
+#include "vm/frame.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -160,15 +162,17 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-  if (!not_present)
-    exit(-1);
 
   vme = find_vme (fault_addr);
 
   if (vme == NULL)
   {
     // printf ("fault_vme\n");
-    exit(-1);  
+    if (!verify_stack (fault_addr, f->esp))
+      exit (-1);
+
+    stack_growth (fault_addr);
+    return;
   }
 
   // printf ("we found vme\n");
@@ -211,3 +215,4 @@ verify_stack (int32_t addr, int32_t esp)
   return is_user_vaddr (addr) && esp - addr <= 32
       && 0xC0000000UL - addr <= 8 * 1024 * 1024;
 }
+
