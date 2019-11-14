@@ -1,3 +1,6 @@
+#ifndef VM_PAGE_H
+#define VM_PAGE_H
+
 #include <stdint.h>
 #include <debug.h>
 #include <list.h>
@@ -28,6 +31,16 @@ struct vm_entry
     struct hash_elem elem;
 };
 
+struct page
+{
+    void *kaddr;
+    struct vm_entry *vme;
+    struct thread *thread;
+    struct list_elem lru;
+};
+
+
+
 void vm_init (struct hash *vm);
 bool insert_vme (struct hash *vm, struct vm_entry *vme);
 bool delete_vme (struct hash *vm, struct vm_entry *vme);
@@ -35,3 +48,8 @@ struct vm_entry *find_vme (void * vaddr);
 void vm_destroy (struct hash *vm);
 bool load_file (void *kaddr, struct vm_entry *vme);
 void show_vm ();
+
+struct page *alloc_page (enum palloc_flags);
+void free_page (void *);
+
+#endif

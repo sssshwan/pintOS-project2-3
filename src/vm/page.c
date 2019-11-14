@@ -112,27 +112,33 @@ load_file (void *kaddr, struct vm_entry *vme)
   return true;
 }
 
-void
-show_vm ()
+struct page *
+alloc_page (enum palloc_flags flags)
 {
-  // printf ("===show_vm===\n");
-  struct hash *vm = &thread_current ()->vm;
-  struct hash_iterator i;
-  struct vm_entry *ee;
-  int id = 0;
-  if (hash_size (vm) == 0)
-    return;
-    
+  struct page *page;
+  page = (struct page *) malloc (sizeof (struct page));
 
-  hash_first (&i, vm);
-  while (hash_next (&i))
-  {
-    ee = hash_entry (hash_cur (&i), struct vm_entry, elem);
-    if (ee->type == VM_BIN)
-    {
-      printf ("%dth vme's file_length: %d\n", ++id, file_length (ee->file));
-      printf ("%dth vme's vaddr: %d\n", id, ee->vaddr);
-      printf ("%dth vme's read_bytes: %d\n", id, ee->read_bytes);
-    }
-  }
+  page->thread = thread_current ();
+  page->kaddr = palloc_get_page (flags);
+
+  return page;
+}
+
+void
+__free_page (struct page *page)
+{
+
+  pagedir_clear_page (page->thread->pagedir, page->vme->vaddr);
+  lru_list_delete (page);
+  palloc_free_page (page->kaddr);
+  free (page);
+}
+
+void
+free_page(void *addr)
+{
+  struct page *page = lru_list_find (addr);
+  if (page)
+    __free_page(page);
+
 }
