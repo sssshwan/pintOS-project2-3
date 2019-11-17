@@ -11,16 +11,19 @@ static unsigned vm_hash_func (const struct hash_elem *, void * UNUSED);
 static bool vm_less_func (const struct hash_elem *, const struct hash_elem *, void * UNUSED);
 static void vm_destroy_func (struct hash_elem *e, void *aux UNUSED);
 
+/* initialize vm */
 void vm_init (struct hash *vm)
 {
   hash_init (vm, vm_hash_func, vm_less_func, NULL);   
 }
+
 
 static unsigned
 vm_hash_func (const struct hash_elem *e, void *aux UNUSED)
 {
   return hash_int (hash_entry (e, struct vm_entry, elem)->vaddr);
 }
+
 
 static bool
 vm_less_func (const struct hash_elem *a,
@@ -46,6 +49,8 @@ delete_vme (struct hash *vm, struct vm_entry *vme)
   return hash_delete (vm, &vme->elem) != NULL; 
 }
 
+
+/* find_vme success >> vme, fail >> NULL */
 struct vm_entry *
 find_vme (void *vaddr)
 {
@@ -78,11 +83,13 @@ find_vme (void *vaddr)
   return NULL;
 }
 
+
 void 
 vm_destroy (struct hash *vm)
 {
   hash_destroy (vm, vm_destroy_func);
 }
+
 
 static void
 vm_destroy_func (struct hash_elem *e, void *aux UNUSED)
@@ -90,6 +97,7 @@ vm_destroy_func (struct hash_elem *e, void *aux UNUSED)
   struct vm_entry *vme = hash_entry (e, struct vm_entry, elem);
   free (vme);
 }
+
 
 bool 
 load_file (void *kaddr, struct vm_entry *vme) 
@@ -112,6 +120,7 @@ load_file (void *kaddr, struct vm_entry *vme)
   return true;
 }
 
+/* allocate physical page for given flag */
 struct page *
 alloc_page (enum palloc_flags flags)
 {
@@ -124,21 +133,15 @@ alloc_page (enum palloc_flags flags)
   return page;
 }
 
-void
-__free_page (struct page *page)
-{
-
-  pagedir_clear_page (page->thread->pagedir, page->vme->vaddr);
-  lru_list_delete (page);
-  palloc_free_page (page->kaddr);
-  free (page);
-}
-
+/* free physical page for coresponding physical address */
 void
 free_page(void *addr)
 {
   struct page *page = lru_list_find (addr);
-  if (page)
-    __free_page(page);
-
+  if (page){
+    pagedir_clear_page (page->thread->pagedir, page->vme->vaddr);
+    lru_list_delete (page);
+    palloc_free_page (page->kaddr);
+    free (page);
+  }
 }

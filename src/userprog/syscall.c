@@ -535,6 +535,7 @@ find_mmap_file (mapid_t mapid)
 }
 
 
+/* pj3: munmap system call */
 void
 mummap (mapid_t mapid)
 {

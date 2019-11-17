@@ -678,7 +678,7 @@ handle_mm_fault (struct vm_entry *vme)
   }
 }
 
-
+/* pj3 : expand stack for page fault */
 void
 stack_growth (void *addr)
 {
