@@ -39,6 +39,14 @@ struct page
     struct list_elem lru;
 };
 
+struct mmap_file
+{
+    int mapid;
+    struct file *file;
+    struct list_elem elem;
+    struct list vme_list;
+};
+
 
 
 void vm_init (struct hash *vm);

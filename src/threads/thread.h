@@ -113,6 +113,8 @@ struct thread
 
     /* pj3 */
     struct hash vm;                     /* hash table that manage vaddr */
+    struct list mmap_list;
+    int next_mapid;
     // struct file *file;
   };
 

@@ -662,7 +662,10 @@ handle_mm_fault (struct vm_entry *vme)
 
     case VM_FILE:
       // printf ("handle_mm VM_FILE!\n");
-      return false;
+      load_file (kpage, vme);
+      // printf ("load_file returns %d\n", lf_flag);
+      install_page (vme->vaddr, kpage, vme->writable);
+      return true;
       break;
 
     case VM_ANON:
@@ -702,3 +705,4 @@ stack_growth (void *addr)
   insert_vme (&thread_current ()->vm, vme);
 
 }
+

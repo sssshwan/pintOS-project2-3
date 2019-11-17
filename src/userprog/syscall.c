@@ -1,15 +1,14 @@
-#include "userprog/syscall.h"
 #include <stdio.h>
 #include <syscall-nr.h>
+#include <stddef.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
+#include "lib/user/syscall.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 #include "vm/page.h"
-
-typedef int pid_t;
 
 static void syscall_handler (struct intr_frame *);
 
@@ -26,6 +25,8 @@ int write (int fd, const void *buffer, unsigned length);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+int mmap (int fd, void *addr);
+void mummap (int mapid);
 
 /* pj3 */
 struct vm_entry * check_address (void* addr, void* esp /*Unused*/);
@@ -119,7 +120,8 @@ syscall_handler (struct intr_frame *f)
         return;
 
       /* pj2: call create */
-      bool result = create (*(ptr + 1), *(ptr + 2));f->eax = result;
+      bool result = create (*(ptr + 1), *(ptr + 2));
+      f->eax = result;
       break;
     }
 
@@ -224,6 +226,25 @@ syscall_handler (struct intr_frame *f)
       close (*(ptr + 1));
       break;
     }
+
+    /* case mmap */
+    case SYS_MMAP:
+    {
+      if(!is_user_vaddr (ptr + 1) || ! is_user_vaddr(ptr + 2))
+        return;
+      f->eax = mmap (*(ptr +1), *(ptr+2));
+      break;
+    }
+      
+    /* case munmap */
+    case SYS_MUNMAP:
+    {
+      if(!is_user_vaddr (ptr + 1))
+        return;
+      mummap (*(ptr+1));
+      break;
+    }
+
   }
   return;
 }
@@ -329,9 +350,7 @@ filesize (int fd)
   int ret;
 
   if(! cur->file_fdt[fd]) exit(-1);
-  lock_acquire (&filesys_lock);
   ret = file_length(cur->file_fdt[fd]);
-  lock_release (&filesys_lock);
 
   return ret;
 }
@@ -407,10 +426,10 @@ void
 seek (int fd, unsigned position) 
 {
   struct thread *cur = thread_current();
-  if(!cur->file_fdt[fd]) exit(-1);
-  lock_acquire (&filesys_lock);
+  if(!cur->file_fdt[fd]) 
+    exit(-1);
+
   file_seek(cur->file_fdt[fd], position);
-  lock_release (&filesys_lock);
 
   return; 
 }
@@ -422,10 +441,10 @@ tell (int fd)
   struct thread *cur = thread_current();
   unsigned ret;
 
-  if(!cur->file_fdt[fd]) exit(-1);
-  lock_acquire (&filesys_lock);
+  if(!cur->file_fdt[fd]) 
+    exit(-1);
+
   ret = file_tell(cur->file_fdt[fd]); 
-  lock_release (&filesys_lock);
 
   return ret;
 }
@@ -435,13 +454,112 @@ void
 close (int fd)
 {
   struct thread *cur = thread_current();
-  if (! cur->file_fdt[fd]) exit(-1);
-  lock_acquire (&filesys_lock);
+  if (! cur->file_fdt[fd]) 
+    exit(-1);
+
   file_close(cur->file_fdt[fd]);
   cur->file_fdt[fd] = NULL;
-  lock_release (&filesys_lock);
 
-  return ;
+}
+
+/* pj3: mmap system call */
+int
+mmap (int fd, void *addr)
+{
+  struct thread *t = thread_current();
+  struct mmap_file *mmap_file;
+  size_t offset = 0;
+
+  if (addr == NULL)
+    return -1;
+  if (! is_user_vaddr (addr))
+    exit(-1);
+  if (pg_ofs(addr) != 0)
+    return -1;
+  if (fd == 0 || fd == 1)
+    return -1;
+
+  mmap_file = (struct mmap_file *)malloc(sizeof (struct mmap_file));
+  if (!mmap_file || file_length(mmap_file) == 0)
+    return -1;
+
+  list_init (&mmap_file->vme_list);
+  if (!(mmap_file->file = t->file_fdt[fd]))
+    return -1;
+
+  mmap_file->file = file_reopen(mmap_file->file);
+  mmap_file->mapid = t->next_mapid++;
+  
+  list_push_back (&t->mmap_list, &mmap_file->elem);
+
+  int length = file_length (mmap_file->file);
+
+  while (length > 0)
+  {
+    if (find_vme (addr))
+      return -1;
+
+    struct vm_entry *vme = (struct vm_entry *) malloc(sizeof(struct vm_entry));
+    
+    vme->read_bytes = length < PGSIZE ? length : PGSIZE;
+    vme->zero_bytes = 0;
+    vme->file = mmap_file->file;
+    vme->type = VM_FILE;
+    vme->writable = true;
+    vme->vaddr = addr;
+    vme->offset = offset;
+
+    list_push_back (&mmap_file->vme_list, &vme->mmap_elem);
+    insert_vme (&t->vm, vme);
+    
+    offset += PGSIZE;
+    addr += PGSIZE;
+    length -= PGSIZE;
+  }
+
+  return mmap_file->mapid;
+}
+
+static struct mmap_file * 
+find_mmap_file (mapid_t mapid)
+{
+  struct thread *t = thread_current();
+  struct list_elem *e;
+  for (e = list_begin (&t->mmap_list); e != list_end (&t->mmap_list); e = list_next (e))
+  {
+    struct mmap_file *f = list_entry (e, struct mmap_file, elem);
+    if (f->mapid == mapid)
+      return f;
+  }
+  return NULL; 
+}
+
+
+void
+mummap (mapid_t mapid)
+{
+  struct thread *t = thread_current();
+  struct list_elem *e;
+  struct vm_entry *vme;
+  struct mmap_file *mmap_file = find_mmap_file (mapid);
+  
+
+  if (! mmap_file)
+    exit(-1);
+  
+  e = list_begin (&mmap_file->vme_list);
+  while (e != list_end (&mmap_file->vme_list))
+  {
+    vme = list_entry (e, struct vm_entry, mmap_elem);
+    if (pagedir_is_dirty(t->pagedir, vme->vaddr))
+      file_write_at (vme->file, vme->vaddr, vme->read_bytes, vme->offset);
+    
+    delete_vme (&t->vm, vme);
+    e = list_remove (e);
+  }
+  list_remove (&mmap_file->elem);
+  free (mmap_file);
+
 }
 
 /* pj3: check address */
@@ -471,3 +589,4 @@ check_valid_string (const void* str, void* esp)
 {
   check_address (str, esp);
 }
+
