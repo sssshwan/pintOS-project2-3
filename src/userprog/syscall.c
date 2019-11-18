@@ -26,7 +26,7 @@ void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
 int mmap (int fd, void *addr);
-void mummap (int mapid);
+void munmap (int mapid);
 
 /* pj3 */
 struct vm_entry * check_address (void* addr, void* esp /*Unused*/);
@@ -241,7 +241,7 @@ syscall_handler (struct intr_frame *f)
     {
       if(!is_user_vaddr (ptr + 1))
         return;
-      mummap (*(ptr+1));
+      munmap (*(ptr+1));
       break;
     }
 
@@ -537,30 +537,17 @@ find_mmap_file (mapid_t mapid)
 
 /* pj3: munmap system call */
 void
-mummap (mapid_t mapid)
+munmap (mapid_t mapid)
 {
   struct thread *t = thread_current();
   struct list_elem *e;
   struct vm_entry *vme;
   struct mmap_file *mmap_file = find_mmap_file (mapid);
-  
 
   if (! mmap_file)
     exit(-1);
-  
-  e = list_begin (&mmap_file->vme_list);
-  while (e != list_end (&mmap_file->vme_list))
-  {
-    vme = list_entry (e, struct vm_entry, mmap_elem);
-    if (pagedir_is_dirty(t->pagedir, vme->vaddr))
-      file_write_at (vme->file, vme->vaddr, vme->read_bytes, vme->offset);
-    
-    delete_vme (&t->vm, vme);
-    e = list_remove (e);
-  }
-  list_remove (&mmap_file->elem);
-  free (mmap_file);
 
+  do_munmap(mmap_file);
 }
 
 /* pj3: check address */
