@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "vm/page.h"
+#include "userprog/syscall.h"
 
 
 static thread_func start_process NO_RETURN;
@@ -230,7 +231,16 @@ process_exit (void)
       cur->pagedir = NULL;
       pagedir_activate (NULL);
       pagedir_destroy (pd);
+
     }
+  
+  // int mapid;
+  // for (mapid =1; mapid < cur->next_mapid ; mapid++)
+  // {
+  //   struct mmap_file *mmap_file = find_mmap_file(mapid);
+  //   if (mmap_file)
+  //     mummap(mapid);
+  // }
   
   /* pj3 */
   /* when process exit destroy hash table */

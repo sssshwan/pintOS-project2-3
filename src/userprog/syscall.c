@@ -520,7 +520,7 @@ mmap (int fd, void *addr)
   return mmap_file->mapid;
 }
 
-static struct mmap_file * 
+struct mmap_file * 
 find_mmap_file (mapid_t mapid)
 {
   struct thread *t = thread_current();
