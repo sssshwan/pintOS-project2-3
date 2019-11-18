@@ -602,6 +602,8 @@ setup_stack (void **esp)
   vme->writable = true;
   vme->is_loaded = true;
 
+  kpage->vme = vme;
+
   insert_vme (&thread_current ()->vm, vme);
   return success;
 }
@@ -636,6 +638,7 @@ handle_mm_fault (struct vm_entry *vme)
   // printf ("file_length: %d\n", file_length (vme->file));
 
   struct page *kpage = alloc_page (PAL_USER);
+  kpage->vme = vme;
   if (kpage==NULL)
     return false;
 
@@ -643,26 +646,29 @@ handle_mm_fault (struct vm_entry *vme)
   {
     case VM_BIN:
       // printf ("handle_mm VM_BIN!\n");
-      success = load_file (kpage, vme);
+      success = load_file (kpage->kaddr, vme);
       // printf ("load_file returns %d\n", lf_flag);
-      install_page (vme->vaddr, kpage->kaddr, vme->writable);
+
       break;
 
     case VM_FILE:
       // printf ("handle_mm VM_FILE!\n");
-      success = load_file (kpage, vme);
+      success = load_file (kpage->kaddr, vme);
       // printf ("load_file returns %d\n", lf_flag);
-      install_page (vme->vaddr, kpage->kaddr, vme->writable);
       break;
 
     case VM_ANON:
       // printf ("handle_mm VM_ANON!\n");
-      swap_in (vme->swap_slot, kpage);
+      swap_in (vme->swap_slot, kpage->kaddr);
       break;
     
     default:
+      // stack_growth (vme->vaddr);
       break;
   }
+  install_page (vme->vaddr, kpage->kaddr, vme->writable);
+  vme->is_loaded = true;
+  lru_list_insert (kpage);
   return success;
 }
 
@@ -691,7 +697,6 @@ stack_growth (void *addr)
   kpage->vme = vme;
 
   insert_vme (&thread_current ()->vm, vme);
-
 }
 
 /* unmap mmap_file from process */

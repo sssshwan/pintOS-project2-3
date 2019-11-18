@@ -19,6 +19,7 @@ lru_list_init (void)
 void
 lru_list_insert (struct page *page)
 {
+  printf ("lru_inserted\n");
   list_push_back (&lru_list, &page->lru);
 }
 
@@ -26,6 +27,7 @@ lru_list_insert (struct page *page)
 void
 lru_list_delete (struct page *page)
 {
+  printf ("lru_deleted\n");
   list_remove (&page->lru);
 }
 
@@ -44,7 +46,7 @@ lru_list_find (void *kaddr)
 }
 
 struct page *
-lru_pop ()
+lru_front ()
 {
-  return list_entry (list_pop_front (&lru_list), struct page, lru);
+  return list_entry (list_begin (&lru_list), struct page, lru);
 }

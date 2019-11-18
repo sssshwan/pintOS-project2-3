@@ -56,6 +56,7 @@ struct vm_entry *find_vme (void * vaddr);
 void vm_destroy (struct hash *vm);
 bool load_file (void *kaddr, struct vm_entry *vme);
 void show_vm ();
+void show_vme (struct vm_entry *vme);
 
 struct page *alloc_page (enum palloc_flags);
 void free_page (void *);
