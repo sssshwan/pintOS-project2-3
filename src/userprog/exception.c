@@ -214,6 +214,6 @@ page_fault (struct intr_frame *f)
 bool
 check_stack_status (int32_t fault_addr, int32_t esp)
 {
-  return esp - fault_addr <= 32 && STACK_LIMIT <= fault_addr;
+  return is_user_vaddr(fault_addr) && esp - fault_addr <= 32 && STACK_LIMIT <= fault_addr;
 }
 

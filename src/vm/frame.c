@@ -5,14 +5,17 @@
 #include "threads/vaddr.h"
 #include "userprog/pagedir.h"
 
+
 /* lru_list manage physical pages in use as a list of pages */
 static struct list lru_list;
+struct lock lru_list_lock;
 
 /* initializer lru list*/
 void
 lru_list_init (void)
 {
   list_init (&lru_list);
+  lock_init (&lru_list_lock);
 }
 
 /* insert corresponding page to lru_list */
@@ -20,7 +23,10 @@ void
 lru_list_insert (struct page *page)
 {
   // printf ("lru_inserted\n");
+  lock_acquire (&lru_list_lock);
   list_push_back (&lru_list, &page->lru);
+  lock_release (&lru_list_lock);
+
 }
 
 /* delete corresponding page from lru_list */
@@ -28,7 +34,10 @@ void
 lru_list_delete (struct page *page)
 {
   // printf ("lru_deleted\n");
+  lock_acquire (&lru_list_lock);
   list_remove (&page->lru);
+  lock_release (&lru_list_lock);
+
 }
 
 /* find corresponding page from lru_list */

@@ -28,9 +28,8 @@ swap_in (size_t used_index, void* kaddr)
     int i;  
 
     for (i = 0; i < 8; i++)
-    {
         block_read (swap_partition, used_index*8 + i, kaddr + BLOCK_SECTOR_SIZE * i);
-    }
+
     
     bitmap_set (swap_bitmap, used_index, true);
     // printf ("=== end swap_in ===\n");
@@ -43,9 +42,7 @@ swap_out(void* kaddr)
 
     int i;
     for (i = 0; i < 8; i++)
-    {
         block_write (swap_partition, swap_index*8 + i, kaddr + BLOCK_SECTOR_SIZE * i);
-    }
 
     bitmap_set(swap_bitmap, swap_index, false);
 
