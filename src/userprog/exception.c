@@ -163,11 +163,13 @@ page_fault (struct intr_frame *f)
   user = (f->error_code & PF_U) != 0;
 
 
+  /* check if in vm entry */
   vme = find_vme (fault_addr);
 
+  /* not found then try to expand stack */
   if (vme == NULL)
   {
-    // printf ("fault_vme\n");
+
     if (!verify_stack (fault_addr, f->esp))
       exit (-1);
 
@@ -175,18 +177,9 @@ page_fault (struct intr_frame *f)
     return;
   }
 
-  // printf ("we found vme\n");
-  // printf ("with read_bytes: %d\n", vme->read_bytes);
-  // printf ("with vaddr: %d\n", vme->vaddr);
-  // printf ("with file_length: %d\n", file_length (vme->file));
-
-  // if (!verify_stack ((int32_t) fault_addr, f->esp))
-  //   exit (-1);
+  /* found then handle each cases */
   if (!handle_mm_fault (vme))
-  {
-    // printf ("fault_mm\n");
     exit(-1);
-  }
 
 /*====================================================*/
 //    /* pj2 */
