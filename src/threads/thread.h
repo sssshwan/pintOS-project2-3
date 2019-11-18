@@ -115,6 +115,7 @@ struct thread
     struct hash vm;                     /* hash table that manage vaddr */
     struct list mmap_list;
     int next_mapid;
+    int *esp;                     
     // struct file *file;
   };
 

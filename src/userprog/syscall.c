@@ -50,6 +50,7 @@ syscall_handler (struct intr_frame *f)
 
   int *ptr = f->esp;
   struct thread *cur = thread_current(); 
+  cur->esp = f->esp;
 
   /* pj3 */
   check_address (ptr, ptr);

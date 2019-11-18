@@ -12,12 +12,14 @@
 #include "vm/frame.h"
 
 /* Number of page faults processed. */
+#define STACK_LIMIT ((void *) 0x40000000)
+
 static long long page_fault_cnt;
 
 static void kill (struct intr_frame *);
 static void page_fault (struct intr_frame *);
 
-bool verify_stack (int32_t addr, int32_t esp);
+bool check_stack_status (int32_t faust_addr, int32_t esp);
 
 /* Registers handlers for interrupts that can be caused by user
    programs.
@@ -162,7 +164,13 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-
+  if (!user && !not_present)
+  {
+      f->eip = (void (*) (void)) f->eax;
+      f->eax = (uint32_t) -1;
+      return;
+  }
+  int32_t *esp = user ? f->esp : thread_current ()->esp;
   /* check if in vm entry */
   vme = find_vme (fault_addr);
 
@@ -170,11 +178,12 @@ page_fault (struct intr_frame *f)
   if (vme == NULL)
   {
 
-    if (!verify_stack (fault_addr, f->esp))
+   if (check_stack_status (fault_addr, esp))
+      stack_growth (fault_addr);
+   else
       exit (-1);
 
-    stack_growth (fault_addr);
-    return;
+   return;
   }
 
   /* found then handle each cases */
@@ -203,9 +212,8 @@ page_fault (struct intr_frame *f)
 }
 
 bool
-verify_stack (int32_t addr, int32_t esp)
+check_stack_status (int32_t fault_addr, int32_t esp)
 {
-  return is_user_vaddr (addr) && esp - addr <= 32
-      && 0xC0000000UL - addr <= 8 * 1024 * 1024;
+  return esp - fault_addr <= 32 && STACK_LIMIT <= fault_addr;
 }
 
