@@ -618,7 +618,7 @@ setup_stack (void **esp)
   vme = (struct vm_entry *) malloc(sizeof (struct vm_entry));
   // memset (vme, 0, sizeof (struct vm_entry));
 
-  vme->type = VM_ANON;
+  vme->type = VM_BIN;
   vme->vaddr = (uint8_t *) PHYS_BASE - PGSIZE;
   vme->writable = true;
 
@@ -695,7 +695,7 @@ stack_growth (void *addr)
   struct page *kpage;
   struct vm_entry *vme = (struct vm_entry *)malloc(sizeof(struct vm_entry));
   
-  vme->type = VM_ANON;
+  vme->type = VM_BIN;
   vme->vaddr = pg_round_down (addr);
   vme->writable = true;
   vme->is_loaded = true;
