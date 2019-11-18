@@ -520,6 +520,8 @@ mmap (int fd, void *addr)
   return mmap_file->mapid;
 }
 
+/* find correspoind mmap_file in mmap_list */
+/* reuturn mmap_file if success else NULL */
 struct mmap_file * 
 find_mmap_file (mapid_t mapid)
 {
