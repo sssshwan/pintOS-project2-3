@@ -132,12 +132,12 @@ load_file (void *kaddr, struct vm_entry *vme)
 
 static void collect (void)
 {
-  printf ("=== collect === \n");
+  // printf ("=== collect === \n");
   struct page *victim = lru_front ();
-  show_vme (victim->vme);
+  // show_vme (victim->vme);
 
-  bool dirty = true;
-  //dirty = pagedir_is_dirty (victim->thread->pagedir, victim->vme->vaddr);
+  bool dirty; // = true;
+  dirty = pagedir_is_dirty (victim->thread->pagedir, victim->vme->vaddr);
   //printf ("dirty : %d\n", dirty);
   //show_vme (victim->vme);
   switch (victim->vme->type)
@@ -152,10 +152,10 @@ static void collect (void)
       case VM_FILE:
         if (dirty)
           {
-            // if (file_write_at (victim->vme->file, victim->vme->vaddr,
-            //                    victim->vme->read_bytes, victim->vme->offset)
-            //   != (int) victim->vme->read_bytes)
-            //   NOT_REACHED ();
+            if (file_write_at (victim->vme->file, victim->vme->vaddr,
+                               victim->vme->read_bytes, victim->vme->offset)
+              != (int) victim->vme->read_bytes)
+              NOT_REACHED ();
           }
         break;
       case VM_ANON:
@@ -165,7 +165,8 @@ static void collect (void)
         NOT_REACHED ();
     }
   victim->vme->is_loaded = false;
-  free_page(victim);
+  // show_vme (victim->vme);
+  free_page (victim->kaddr);
 }
 
 struct page *
@@ -180,33 +181,16 @@ alloc_page (enum palloc_flags flags)
   page->thread = thread_current ();
   page->kaddr = palloc_get_page (flags);
   // collect ();
-  if (page->kaddr == NULL)
+  int cnt = 0;
+  while (page->kaddr == NULL)
     {
-      printf ("Null occured \n");
+      // printf ("Null occured \n");
       collect ();
       page->kaddr = palloc_get_page (flags);
     }
   // lru_list_insert (page);
   return page;
 }
-// /* allocate physical page for given flag */
-// struct page *
-// alloc_page (enum palloc_flags flags)
-// {
-//   struct page *page;
-//   page = (struct page *) malloc (sizeof (struct page));
-
-//   page->thread = thread_current ();
-//   page->kaddr = palloc_get_page (flags);
-//   if (page->kaddr == NULL)
-//   {
-//     printf ("palloc_get_page return NULL!!\n");
-//   }
-
-//   lru_list_insert (page);
-
-//   return page;
-// }
 
 /* free physical page for coresponding physical address */
 void

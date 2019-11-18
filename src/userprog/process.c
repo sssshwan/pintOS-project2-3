@@ -660,6 +660,7 @@ handle_mm_fault (struct vm_entry *vme)
     case VM_ANON:
       // printf ("handle_mm VM_ANON!\n");
       swap_in (vme->swap_slot, kpage->kaddr);
+      success = true;
       break;
     
     default:
