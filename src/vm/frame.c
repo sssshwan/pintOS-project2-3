@@ -19,6 +19,7 @@ lru_list_init (void)
 void
 lru_list_insert (struct page *page)
 {
+  // printf ("lru_inserted\n");
   list_push_back (&lru_list, &page->lru);
 }
 
@@ -26,6 +27,7 @@ lru_list_insert (struct page *page)
 void
 lru_list_delete (struct page *page)
 {
+  // printf ("lru_deleted\n");
   list_remove (&page->lru);
 }
 
@@ -36,9 +38,25 @@ lru_list_find (void *kaddr)
   struct list_elem *e;
   for (e = list_begin (&lru_list); e != list_end (&lru_list); e = list_next (e))
   {
-      struct page *page = list_entry (e, struct page, lru);
-      if (page->kaddr == kaddr)
+    struct page *page = list_entry (e, struct page, lru);
+    if (page->kaddr == kaddr)
       return page;
   }
   return NULL;
+}
+
+struct page *
+lru_front ()
+{
+  // struct list_elem *e;
+  // for (e = list_begin (&lru_list); e != list_end (&lru_list); e = list_next (e))
+  // {
+  //   struct page *page = list_entry (e, struct page, lru);
+  //   if (page->vme->type == 2)
+  //   {
+  //     // printf ("2!!!!!!\n");
+  //     return page;
+  //   }
+  // }
+  return list_entry (list_begin (&lru_list), struct page, lru);
 }

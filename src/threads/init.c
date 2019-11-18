@@ -106,6 +106,7 @@ main (void)
   gdt_init ();
 #endif
 
+
   /* Initialize interrupt handlers. */
   intr_init ();
   timer_init ();
@@ -128,6 +129,10 @@ main (void)
   filesys_init (format_filesys);
 #endif
   lru_list_init ();
+  
+  /* pj3 swap */
+  swap_init ();
+
 
   printf ("Boot complete.\n");
   

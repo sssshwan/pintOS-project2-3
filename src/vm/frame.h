@@ -8,5 +8,6 @@ void lru_list_init (void);
 void lru_list_insert (struct page *);
 void lru_list_delete (struct page *);
 struct page *lru_list_find (void *);
+struct page *lru_front ();
 
 #endif
