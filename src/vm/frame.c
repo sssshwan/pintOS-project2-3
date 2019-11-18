@@ -38,3 +38,9 @@ lru_list_find (void *kaddr)
     }
   return NULL;
 }
+
+struct page *
+lru_pop ()
+{
+  return list_entry (list_pop_front (&lru_list), struct page, lru);
+}

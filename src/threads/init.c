@@ -106,6 +106,11 @@ main (void)
   gdt_init ();
 #endif
 
+  /* pj3 swap */
+#ifdef VM
+  swap_init ();
+#endif
+
   /* Initialize interrupt handlers. */
   intr_init ();
   timer_init ();

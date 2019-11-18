@@ -118,19 +118,77 @@ load_file (void *kaddr, struct vm_entry *vme)
   memset (kaddr + num_read, 0, vme->zero_bytes);
   return true;
 }
+static void collect (void)
+{
 
-/* allocate physical page for given flag */
+  struct page *victim = lru_pop ();
+
+  bool dirty = pagedir_is_dirty (victim->thread->pagedir, victim->vme->vaddr);
+  switch (victim->vme->type)
+    {
+      case VM_BIN:
+        if (dirty)
+          {
+            victim->vme->swap_slot = swap_out (victim->kaddr);
+            victim->vme->type = VM_ANON;
+          }
+        break;
+      case VM_FILE:
+        if (dirty)
+          {
+            if (file_write_at (victim->vme->file, victim->vme->vaddr,
+                               victim->vme->read_bytes, victim->vme->offset)
+              != (int) victim->vme->read_bytes)
+              NOT_REACHED ();
+          }
+        break;
+      case VM_ANON:
+        victim->vme->swap_slot = swap_out (victim->kaddr);
+        break;
+      default:
+        NOT_REACHED ();
+    }
+  victim->vme->is_loaded = false;
+  free_page(victim);
+}
+
 struct page *
 alloc_page (enum palloc_flags flags)
 {
   struct page *page;
-  page = (struct page *) malloc (sizeof (struct page));
-
+  page = (struct page *)malloc (sizeof (struct page));
+  if (page == NULL)
+    return NULL;
+  memset (page, 0, sizeof (struct page));
   page->thread = thread_current ();
+  ASSERT (page->thread);
+  ASSERT (page->thread->magic == 0xcd6abf4b);
   page->kaddr = palloc_get_page (flags);
-
+  while (page->kaddr == NULL)
+    {
+      collect ();
+      page->kaddr = palloc_get_page (flags);
+    }
   return page;
 }
+// /* allocate physical page for given flag */
+// struct page *
+// alloc_page (enum palloc_flags flags)
+// {
+//   struct page *page;
+//   page = (struct page *) malloc (sizeof (struct page));
+
+//   page->thread = thread_current ();
+//   page->kaddr = palloc_get_page (flags);
+//   if (page->kaddr == NULL)
+//   {
+//     printf ("palloc_get_page return NULL!!\n");
+//   }
+
+//   lru_list_insert (page);
+
+//   return page;
+// }
 
 /* free physical page for coresponding physical address */
 void

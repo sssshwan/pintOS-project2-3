@@ -655,6 +655,7 @@ handle_mm_fault (struct vm_entry *vme)
 {
   // printf ("==handle_mm_fault in==\n");
   uint8_t *kpage = palloc_get_page (PAL_USER);
+  bool success = false;
   // printf ("file_length: %d\n", file_length (vme->file));
 
   if (kpage==NULL)
@@ -664,7 +665,7 @@ handle_mm_fault (struct vm_entry *vme)
   {
     case VM_BIN:
       // printf ("handle_mm VM_BIN!\n");
-      load_file (kpage, vme);
+      success = load_file (kpage, vme);
       // printf ("load_file returns %d\n", lf_flag);
       install_page (vme->vaddr, kpage, vme->writable);
       return true;    
@@ -672,7 +673,7 @@ handle_mm_fault (struct vm_entry *vme)
 
     case VM_FILE:
       // printf ("handle_mm VM_FILE!\n");
-      load_file (kpage, vme);
+      success = load_file (kpage, vme);
       // printf ("load_file returns %d\n", lf_flag);
       install_page (vme->vaddr, kpage, vme->writable);
       return true;
@@ -680,12 +681,14 @@ handle_mm_fault (struct vm_entry *vme)
 
     case VM_ANON:
       // printf ("handle_mm VM_ANON!\n");
+      swap_in (vme->swap_slot, kpage);
       return true;
       break;
     
     default:
       break;
   }
+  return success;
 }
 
 /* pj3 : expand stack for page fault */
