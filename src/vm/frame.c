@@ -49,43 +49,15 @@ struct page *
 evict_frame (void)
 {
   struct list_elem *e;
-  struct page *page;
-  struct vm_entry *vme;
-  bool dirty;
-  bool accessed;
+  for (e = list_begin (&lru_list); e != list_end (&lru_list); e = list_next (e))
+  {
+    struct page *page = list_entry (e, struct page, lru);
+    bool dirty = pagedir_is_dirty (page->thread->pagedir, page->vme->vaddr);
+    bool access = pagedir_is_accessed(page->thread->pagedir, page->vme->vaddr);
+    if (dirty && !access)
+      return list_entry (list_begin (&lru_list), struct page, lru);
 
-  while (true){
-    for (e = list_begin (&lru_list); e != list_end (&lru_list); e = list_next(e))
-    { 
-      page = list_entry (e, struct page, lru);
-      
-      dirty = pagedir_is_dirty (page->thread->pagedir, page->vme->vaddr);
-      accessed = pagedir_is_accessed(page->thread->pagedir, page->vme->vaddr);
-
-      if (!accessed && !dirty && !(vme->is_loaded)){
-        lru_list_delete(page);
-        return page;
-      }
-    
-    }
-    for (e = list_begin (&lru_list); e != list_end (&lru_list); e = list_next(e))
-    { 
-      page = list_entry (e, struct page, lru);
-      
-      dirty = pagedir_is_dirty (page->thread->pagedir, page->vme->vaddr);
-      accessed = pagedir_is_accessed(page->thread->pagedir, page->vme->vaddr);
-
-      if (!accessed && !dirty && !(vme->is_loaded)){
-        lru_list_delete(page);
-        return page;
-      }
-      if (accessed && !(vme->is_loaded)){
-	        pagedir_set_accessed (page->thread->pagedir, page->vme->vaddr, false);
-      }
-    }
-  }
-
-  return page;
+  }  
 }
 
 
