@@ -241,7 +241,7 @@ process_exit (void)
   //   if (mmap_file)
   //     do_munmap(mmap_file);
   // }
-  
+
   /* pj3 */
   /* when process exit destroy hash table */
   vm_destroy (& (cur->vm));
@@ -593,17 +593,23 @@ setup_stack (void **esp)
     if (success)
       *esp = PHYS_BASE;
     else
-      free_page (kpage);
+      free_page (kpage->kaddr);
   }
+  else
+    return false;
 
-  vme = (struct vm_entry *) malloc(sizeof (struct vm_entry));
-  vme->type = VM_BIN;
+  vme = (struct vm_entry *) malloc (sizeof (struct vm_entry));
+  if (! vme)
+    return false;
+
+  vme->type = VM_ANON;
   vme->vaddr = (uint8_t *) PHYS_BASE - PGSIZE;
   vme->writable = true;
   vme->is_loaded = true;
 
   kpage->vme = vme;
 
+  lru_list_insert(kpage);
   insert_vme (&thread_current ()->vm, vme);
   return success;
 }
@@ -620,7 +626,6 @@ setup_stack (void **esp)
 static bool
 install_page (void *upage, void *kpage, bool writable)
 {
-  // printf("==install_page===\n");
   struct thread *t = thread_current ();
 
   /* Verify that there's not already a page at that virtual
@@ -633,38 +638,31 @@ install_page (void *upage, void *kpage, bool writable)
 bool
 handle_mm_fault (struct vm_entry *vme)
 {
-  // printf ("==handle_mm_fault in==\n");
   bool success = false;
-  // printf ("file_length: %d\n", file_length (vme->file));
-
   struct page *kpage = alloc_page (PAL_USER);
   kpage->vme = vme;
-  if (kpage==NULL)
+
+  if (! kpage)
     return false;
 
+  /* handle for each case */
   switch (vme->type)
   {
     case VM_BIN:
-      // printf ("handle_mm VM_BIN!\n");
       success = load_file (kpage->kaddr, vme);
-      // printf ("load_file returns %d\n", lf_flag);
 
       break;
 
     case VM_FILE:
-      // printf ("handle_mm VM_FILE!\n");
       success = load_file (kpage->kaddr, vme);
-      // printf ("load_file returns %d\n", lf_flag);
       break;
 
     case VM_ANON:
-      // printf ("handle_mm VM_ANON!\n");
       swap_in (vme->swap_slot, kpage->kaddr);
       success = true;
       break;
     
     default:
-      // stack_growth (vme->vaddr);
       break;
   }
   install_page (vme->vaddr, kpage->kaddr, vme->writable);
@@ -677,8 +675,11 @@ handle_mm_fault (struct vm_entry *vme)
 void
 stack_growth (void *addr)
 {
+
   struct page *kpage;
   struct vm_entry *vme = (struct vm_entry *)malloc(sizeof(struct vm_entry));
+  if (! vme)
+    return;
   
   vme->type = VM_BIN;
   vme->vaddr = pg_round_down (addr);
@@ -688,7 +689,7 @@ stack_growth (void *addr)
 
   kpage = alloc_page (PAL_USER | PAL_ZERO);
   
-  if (!kpage)
+  if (!kpage) //faile to allocate page
     return;
 
   
@@ -712,7 +713,7 @@ do_munmap(struct mmap_file *mmap_file)
   while (e != list_end (&mmap_file->vme_list))
   {
     vme = list_entry (e, struct vm_entry, mmap_elem);
-    if (pagedir_is_dirty(t->pagedir, vme->vaddr))
+    if (pagedir_is_dirty(t->pagedir, vme->vaddr) && vme->is_loaded)
       file_write_at (vme->file, vme->vaddr, vme->read_bytes, vme->offset);
     
     delete_vme (&t->vm, vme);

@@ -73,6 +73,7 @@ find_vme (void *vaddr)
   return NULL;
 }
 
+/* For debugging */
 void
 show_vm ()
 {
@@ -93,12 +94,15 @@ show_vm ()
   return NULL;
 }
 
+
+/* For debugging */
 void
 show_vme (struct vm_entry *vme)
 {
   printf ("vme->vaddr: %u\n", vme->vaddr);
   printf ("vme->type: %d\n", vme->type);
 }
+
 /* destroy vm using hash_destroy function */
 void 
 vm_destroy (struct hash *vm)
@@ -130,65 +134,60 @@ load_file (void *kaddr, struct vm_entry *vme)
   return true;
 }
 
-static void collect (void)
+/* handle swapping for each type of vm entry */
+static void handle_swap (void)
 {
-  // printf ("=== collect === \n");
-  struct page *victim = lru_front ();
-  // show_vme (victim->vme);
-
-  bool dirty; // = true;
+  struct page *victim = evict_frame ();
+  bool dirty; 
   dirty = pagedir_is_dirty (victim->thread->pagedir, victim->vme->vaddr);
-  //printf ("dirty : %d\n", dirty);
-  //show_vme (victim->vme);
+
+  /* vm entry type */
   switch (victim->vme->type)
-    {
-      case VM_BIN:
-        if (dirty)
-          {
-            victim->vme->swap_slot = swap_out (victim->kaddr);
-            victim->vme->type = VM_ANON;
-          }
-        break;
-      case VM_FILE:
-        if (dirty)
-          {
-            if (file_write_at (victim->vme->file, victim->vme->vaddr,
-                               victim->vme->read_bytes, victim->vme->offset)
-              != (int) victim->vme->read_bytes)
-              NOT_REACHED ();
-          }
-        break;
-      case VM_ANON:
+  {
+    case VM_BIN:
+      if (dirty)
+      {
         victim->vme->swap_slot = swap_out (victim->kaddr);
-        break;
-      default:
-        NOT_REACHED ();
-    }
+        victim->vme->type = VM_ANON;
+      }
+      break;
+
+    case VM_FILE:
+      if (dirty)
+        file_write_at (victim->vme->file, victim->vme->vaddr,
+                            victim->vme->read_bytes, victim->vme->offset);
+      break;
+
+    case VM_ANON:
+      victim->vme->swap_slot = swap_out (victim->kaddr);
+      break;
+
+    default:
+      break;
+  }
   victim->vme->is_loaded = false;
-  // show_vme (victim->vme);
   free_page (victim->kaddr);
 }
 
+/* allocate physical memory for each segment */
 struct page *
 alloc_page (enum palloc_flags flags)
 {
   struct page *page;
-  // printf ("===alloc_page ===\n");
   page = (struct page *) malloc (sizeof (struct page));
-  if (page == NULL)
+  if (! page)
     return NULL;
+
   memset (page, 0, sizeof (struct page));
   page->thread = thread_current ();
   page->kaddr = palloc_get_page (flags);
-  // collect ();
-  int cnt = 0;
+
+  /* no physical memory available than swap */
   while (page->kaddr == NULL)
-    {
-      // printf ("Null occured \n");
-      collect ();
-      page->kaddr = palloc_get_page (flags);
-    }
-  // lru_list_insert (page);
+  {
+    handle_swap ();
+    page->kaddr = palloc_get_page (flags);
+  }
   return page;
 }
 

@@ -8,36 +8,26 @@
 
 /* lru_list manage physical pages in use as a list of pages */
 static struct list lru_list;
-struct lock lru_list_lock;
 
 /* initializer lru list*/
 void
 lru_list_init (void)
 {
   list_init (&lru_list);
-  lock_init (&lru_list_lock);
 }
 
 /* insert corresponding page to lru_list */
 void
 lru_list_insert (struct page *page)
 {
-  // printf ("lru_inserted\n");
-  lock_acquire (&lru_list_lock);
   list_push_back (&lru_list, &page->lru);
-  lock_release (&lru_list_lock);
-
 }
 
 /* delete corresponding page from lru_list */
 void
 lru_list_delete (struct page *page)
 {
-  // printf ("lru_deleted\n");
-  lock_acquire (&lru_list_lock);
   list_remove (&page->lru);
-  lock_release (&lru_list_lock);
-
 }
 
 /* find corresponding page from lru_list */
@@ -54,18 +44,49 @@ lru_list_find (void *kaddr)
   return NULL;
 }
 
+/* select victim of swapping */
 struct page *
-lru_front ()
+evict_frame (void)
 {
-  // struct list_elem *e;
-  // for (e = list_begin (&lru_list); e != list_end (&lru_list); e = list_next (e))
-  // {
-  //   struct page *page = list_entry (e, struct page, lru);
-  //   if (page->vme->type == 2)
-  //   {
-  //     // printf ("2!!!!!!\n");
-  //     return page;
-  //   }
-  // }
-  return list_entry (list_begin (&lru_list), struct page, lru);
+  struct list_elem *e;
+  struct page *page;
+  struct vm_entry *vme;
+  bool dirty;
+  bool accessed;
+
+  while (true){
+    for (e = list_begin (&lru_list); e != list_end (&lru_list); e = list_next(e))
+    { 
+      page = list_entry (e, struct page, lru);
+      
+      dirty = pagedir_is_dirty (page->thread->pagedir, page->vme->vaddr);
+      accessed = pagedir_is_accessed(page->thread->pagedir, page->vme->vaddr);
+
+      if (!accessed && !dirty && !(vme->is_loaded)){
+        lru_list_delete(page);
+        return page;
+      }
+    
+    }
+    for (e = list_begin (&lru_list); e != list_end (&lru_list); e = list_next(e))
+    { 
+      page = list_entry (e, struct page, lru);
+      
+      dirty = pagedir_is_dirty (page->thread->pagedir, page->vme->vaddr);
+      accessed = pagedir_is_accessed(page->thread->pagedir, page->vme->vaddr);
+
+      if (!accessed && !dirty && !(vme->is_loaded)){
+        lru_list_delete(page);
+        return page;
+      }
+      if (accessed && !(vme->is_loaded)){
+	        pagedir_set_accessed (page->thread->pagedir, page->vme->vaddr, false);
+      }
+    }
+  }
+
+  return page;
 }
+
+
+  
