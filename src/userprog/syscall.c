@@ -246,6 +246,45 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
+    case SYS_MKDIR:
+    {
+      if(!is_user_vaddr (ptr + 1))
+        return;
+      f->eax = mkdir (*(ptr +1));
+      break;
+    }
+
+    case SYS_CHDIR:
+    {
+      if(!is_user_vaddr (ptr + 1))
+        return;
+      f->eax = chdir (*(ptr +1));
+      break;
+    }
+
+    case SYS_READDIR:
+    {
+      if(!is_user_vaddr (ptr + 1) || ! is_user_vaddr(ptr + 2))
+        return;
+      f->eax = readdir (*(ptr +1), *(ptr+2));
+      break;
+    }
+    
+    case SYS_ISDIR:
+    {
+      if(!is_user_vaddr (ptr + 1))
+        return;
+      f->eax = isdir (*(ptr +1));
+      break;
+    }
+
+    case SYS_INUMBER:
+    {
+       if(!is_user_vaddr (ptr + 1))
+        return;
+      f->eax = inumber (*(ptr +1));
+      break;
+    }
   }
   return;
 }
@@ -551,6 +590,41 @@ munmap (mapid_t mapid)
     exit(-1);
 
   do_munmap(mmap_file);
+}
+
+/* pj4: */
+bool
+mkdir (const char *dir)
+{
+  return 1;
+}
+
+/* pj4: */
+bool
+chdir (const char *dir)
+{
+  return 1;
+}
+
+/* pj4: */
+bool
+readdir (int fd, char *name)
+{
+  return 1;
+}
+
+/* pj4: */
+bool
+isdir (int fd)
+{
+  return 1;
+}
+
+/* pj4: */
+int
+inumber (int fd)
+{
+  return 1;
 }
 
 /* pj3: check address */
